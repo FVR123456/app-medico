@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { registerUser, signInWithGoogle } from '../services/auth';
+import { updatePatientProfile } from '../services/firestore';
 import { useNotification } from '../context/NotificationContext';
 import { validateRegisterForm } from '../services/validation';
+import type { PatientProfile } from '../types';
 import {
   Container,
   Paper,
@@ -11,11 +13,8 @@ import {
   Typography,
   Box,
   CircularProgress,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Divider
+  Divider,
+  InputAdornment
 } from '@mui/material';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -32,14 +31,20 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'doctor' | 'patient'>('patient');
+  const [phone, setPhone] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
-    // Validar formulario
-    const validationErrors = validateRegisterForm(email, password, confirmPassword, name, role);
+    // Validar formulario básico
+    const validationErrors = validateRegisterForm(email, password, confirmPassword, name, 'patient');
+    
+    // Validación adicional del teléfono
+    if (!phone.trim()) {
+      validationErrors.push({ field: 'phone', message: 'El teléfono es requerido' });
+    }
+    
     if (validationErrors.length > 0) {
       const errorMap: Record<string, string> = {};
       validationErrors.forEach(err => {
@@ -51,15 +56,20 @@ const Register = () => {
 
     setLoading(true);
     try {
-      await registerUser(email, password, name, role);
-      showSuccess('Cuenta creada exitosamente. Completa tu perfil para continuar.');
+      const user = await registerUser(email, password, name, 'patient');
       
-      // Redirigir al wizard de completar perfil
-      if (role === 'patient') {
-        navigate('/complete-profile');
-      } else {
-        navigate('/login');
+      // Guardar teléfono básico
+      if (user) {
+        const profileData: Partial<PatientProfile> = {
+          phone,
+          profileCompleted: false
+        };
+        
+        await updatePatientProfile(user.uid, profileData);
       }
+      
+      showSuccess('Cuenta creada exitosamente');
+      navigate('/complete-profile'); // Redirigir a completar perfil
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al registrarse';
       showError(message);
@@ -73,7 +83,7 @@ const Register = () => {
     try {
       await signInWithGoogle();
       showSuccess('Inicio de sesión exitoso con Google');
-      navigate('/complete-profile'); // Siempre redirigir a completar perfil
+      navigate('/patient/profile'); // Redirigir a completar perfil
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al iniciar sesión con Google';
       showError(message);
@@ -83,7 +93,7 @@ const Register = () => {
   };
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 8, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         {/* Header */}
         <Box sx={{ textAlign: 'center', mb: 4 }}>
@@ -161,18 +171,20 @@ const Register = () => {
             error={!!errors.confirmPassword}
             helperText={errors.confirmPassword}
           />
-          
-          <FormControl fullWidth margin="normal" error={!!errors.role}>
-            <InputLabel>Soy...</InputLabel>
-            <Select
-              value={role}
-              label="Soy..."
-              onChange={(e) => setRole(e.target.value as 'doctor' | 'patient')}
-            >
-              <MenuItem value="patient">Paciente</MenuItem>
-              <MenuItem value="doctor">Médico</MenuItem>
-            </Select>
-          </FormControl>
+
+          <TextField
+            fullWidth
+            margin="normal"
+            required
+            label="Teléfono"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            error={!!errors.phone}
+            helperText={errors.phone || 'Ej: 1234567890'}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">+52</InputAdornment>
+            }}
+          />
 
           <Button
             type="submit"

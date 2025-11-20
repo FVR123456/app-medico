@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import DoctorAppointmentCard from '@/components/appointments/DoctorAppointmentCard';
+import AppointmentForm from '@/components/appointments/AppointmentForm';
 import { 
   Typography, 
   Card, 
@@ -12,18 +14,26 @@ import {
   Tabs, 
   Tab, 
   Fade, 
-  Divider, 
-  Stack
+  Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton
 } from '@mui/material';
-import type { ChipPropsColorOverrides } from "@mui/material/Chip";
-import type { OverridableStringUnion } from "@mui/types";
 import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/context/NotificationContext';
-import { subscribeToAppointments, updateAppointmentStatus, type Appointment } from '@/services/firestore';
+import { 
+  subscribeToAppointments, 
+  updateAppointmentStatus,
+  getPatientProfile,
+  type Appointment,
+  type FamilyMember
+} from '@/services/firestore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
 import EventNoteIcon from '@mui/icons-material/EventNote';
+import CloseIcon from '@mui/icons-material/Close';
 import { logger } from '@/services/logger';
 
 const AppointmentManager = () => {
@@ -34,7 +44,7 @@ const AppointmentManager = () => {
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
     appointmentId: string;
-    action: 'accepted' | 'rejected';
+    action: 'accepted' | 'rejected' | 'cancelled';
     patientName: string;
   }>({
     open: false,
@@ -43,6 +53,9 @@ const AppointmentManager = () => {
     patientName: ''
   });
   const [actionLoading, setActionLoading] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -55,17 +68,46 @@ const AppointmentManager = () => {
     return () => unsubscribe();
   }, [user]);
 
-  const handleStatusUpdateRequest = (
-    id: string, 
-    status: 'accepted' | 'rejected',
-    patientName: string
-  ) => {
+  const handleAccept = (id: string, patientName: string) => {
     setConfirmDialog({
       open: true,
       appointmentId: id,
-      action: status,
+      action: 'accepted',
       patientName
     });
+  };
+
+  const handleReject = (id: string, patientName: string) => {
+    setConfirmDialog({
+      open: true,
+      appointmentId: id,
+      action: 'rejected',
+      patientName
+    });
+  };
+
+  const handleCancel = (id: string, patientName: string) => {
+    setConfirmDialog({
+      open: true,
+      appointmentId: id,
+      action: 'cancelled',
+      patientName
+    });
+  };
+
+  const handleEdit = async (appointment: Appointment) => {
+    // Cargar familiares del paciente si es necesario
+    try {
+      const profile = await getPatientProfile(appointment.patientId);
+      if (profile?.familyMembers) {
+        setFamilyMembers(profile.familyMembers);
+      }
+    } catch (error) {
+      console.error('Error loading patient profile:', error);
+    }
+    
+    setEditingAppointment(appointment);
+    setShowEditDialog(true);
   };
 
   const handleConfirmStatusUpdate = async () => {
@@ -76,7 +118,9 @@ const AppointmentManager = () => {
         confirmDialog.action
       );
       
-      const actionText = confirmDialog.action === 'accepted' ? 'aceptada' : 'rechazada';
+      const actionText = 
+        confirmDialog.action === 'accepted' ? 'aceptada' : 
+        confirmDialog.action === 'rejected' ? 'rechazada' : 'cancelada';
       showSuccess(`Cita ${actionText} exitosamente`);
       logger.info(`Appointment ${confirmDialog.action}`, 'AppointmentManager', { id: confirmDialog.appointmentId });
     } catch (error) {
@@ -86,6 +130,17 @@ const AppointmentManager = () => {
       setActionLoading(false);
       setConfirmDialog({ ...confirmDialog, open: false });
     }
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditDialog(false);
+    setEditingAppointment(null);
+    showSuccess('Cita reagendada exitosamente');
+  };
+
+  const handleCloseEditDialog = () => {
+    setShowEditDialog(false);
+    setEditingAppointment(null);
   };
 
   const getStatusColor = (
@@ -119,16 +174,11 @@ const AppointmentManager = () => {
   const pendingCount = appointments.filter(apt => apt.status === 'pending').length;
   const acceptedCount = appointments.filter(apt => apt.status === 'accepted').length;
   const rejectedCount = appointments.filter(apt => apt.status === 'rejected').length;
-
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('es-MX', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  
+  // Separar citas de fin de semana que requieren aprobación
+  const weekendPendingCount = appointments.filter(
+    apt => apt.status === 'pending' && apt.requiresApproval
+  ).length;
 
   return (
     <Layout title="Gestión de Citas">
@@ -136,22 +186,33 @@ const AppointmentManager = () => {
         <Box>
           {/* Stats */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card sx={{
                 background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: 'white'
+                color: 'white',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'translateY(-4px)' }
               }}>
                 <CardContent sx={{ textAlign: 'center', py: 3 }}>
                   <PendingIcon sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h4" fontWeight="bold">{pendingCount}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>Pendientes</Typography>
+                  {weekendPendingCount > 0 && (
+                    <Chip
+                      size="small"
+                      label={`${weekendPendingCount} fin de semana`}
+                      sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)' }}
+                    />
+                  )}
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card sx={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: 'white'
+                color: 'white',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'translateY(-4px)' }
               }}>
                 <CardContent sx={{ textAlign: 'center', py: 3 }}>
                   <CheckCircleIcon sx={{ fontSize: 40, mb: 1 }} />
@@ -160,15 +221,31 @@ const AppointmentManager = () => {
                 </CardContent>
               </Card>
             </Grid>
-            <Grid size={{ xs: 12, sm: 4, md: 3 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
               <Card sx={{
                 background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: 'white'
+                color: 'white',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'translateY(-4px)' }
               }}>
                 <CardContent sx={{ textAlign: 'center', py: 3 }}>
                   <CancelIcon sx={{ fontSize: 40, mb: 1 }} />
                   <Typography variant="h4" fontWeight="bold">{rejectedCount}</Typography>
                   <Typography variant="body2" sx={{ opacity: 0.9 }}>Rechazadas</Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Card sx={{
+                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                color: 'white',
+                transition: 'transform 0.2s',
+                '&:hover': { transform: 'translateY(-4px)' }
+              }}>
+                <CardContent sx={{ textAlign: 'center', py: 3 }}>
+                  <EventNoteIcon sx={{ fontSize: 40, mb: 1 }} />
+                  <Typography variant="h4" fontWeight="bold">{appointments.length}</Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total</Typography>
                 </CardContent>
               </Card>
             </Grid>
@@ -204,76 +281,15 @@ const AppointmentManager = () => {
               {filteredAppointments.map((apt) => (
                 <Grid size={{ xs: 12, md: 6, lg: 4 }} key={apt.id}>
                   <Fade in timeout={300}>
-                    <Card sx={{ height: '100%', position: 'relative' }}>
-                      <CardContent>
-                        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
-                          <Typography variant="h6" fontWeight="600">
-                            {apt.patientName}
-                          </Typography>
-                          <Chip
-                            label={getStatusLabel(apt.status)}
-                            color={getStatusColor(apt.status)}
-                            size="small"
-                          />
-                        </Box>
-
-                        <Divider sx={{ mb: 2 }} />
-
-                        <Stack spacing={1.5}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              📅 Fecha
-                            </Typography>
-                            <Typography variant="body1" fontWeight="500">
-                              {formatDate(apt.date)}
-                            </Typography>
-                          </Box>
-
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              🕐 Hora
-                            </Typography>
-                            <Typography variant="body1" fontWeight="500">
-                              {apt.time}
-                            </Typography>
-                          </Box>
-
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              💬 Motivo
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {apt.reason}
-                            </Typography>
-                          </Box>
-                        </Stack>
-
-                        {apt.status === 'pending' && (
-                          <Stack direction="row" spacing={1} sx={{ mt: 3 }}>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              size="small"
-                              fullWidth
-                              startIcon={<CheckCircleIcon />}
-                              onClick={() => handleStatusUpdateRequest(apt.id, 'accepted', apt.patientName)}
-                            >
-                              Aceptar
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              fullWidth
-                              startIcon={<CancelIcon />}
-                              onClick={() => handleStatusUpdateRequest(apt.id, 'rejected', apt.patientName)}
-                            >
-                              Rechazar
-                            </Button>
-                          </Stack>
-                        )}
-                      </CardContent>
-                    </Card>
+                    <Box>
+                      <DoctorAppointmentCard
+                        appointment={apt}
+                        onAccept={handleAccept}
+                        onReject={handleReject}
+                        onCancel={handleCancel}
+                        onEdit={handleEdit}
+                      />
+                    </Box>
                   </Fade>
                 </Grid>
               ))}
@@ -282,14 +298,62 @@ const AppointmentManager = () => {
         </Box>
       </Fade>
 
+      {/* Dialog para reagendar */}
+      <Dialog
+        open={showEditDialog}
+        onClose={handleCloseEditDialog}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight="600">
+              Reagendar Cita
+            </Typography>
+            <IconButton onClick={handleCloseEditDialog} size="small">
+              <CloseIcon />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <DialogContent>
+          {editingAppointment && (
+            <Box sx={{ pt: 1 }}>
+              <AppointmentForm
+                userId={editingAppointment.patientId}
+                userName={editingAppointment.patientName}
+                familyMembers={familyMembers}
+                editingAppointment={editingAppointment}
+                onSuccess={handleEditSuccess}
+                onCancel={handleCloseEditDialog}
+              />
+            </Box>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmación */}
       <ConfirmDialog
         open={confirmDialog.open}
-        title={confirmDialog.action === 'accepted' ? 'Aceptar Cita' : 'Rechazar Cita'}
-        message={`¿Estás seguro que deseas ${confirmDialog.action === 'accepted' ? 'aceptar' : 'rechazar'} la cita de ${confirmDialog.patientName}?`}
+        title={
+          confirmDialog.action === 'accepted' ? 'Aceptar Cita' : 
+          confirmDialog.action === 'rejected' ? 'Rechazar Cita' : 'Cancelar Cita'
+        }
+        message={
+          confirmDialog.action === 'accepted' 
+            ? `¿Estás seguro que deseas aceptar la cita de ${confirmDialog.patientName}?`
+            : confirmDialog.action === 'rejected'
+            ? `¿Estás seguro que deseas rechazar la cita de ${confirmDialog.patientName}?`
+            : `¿Estás seguro que deseas cancelar la cita de ${confirmDialog.patientName}?`
+        }
         onConfirm={handleConfirmStatusUpdate}
         onCancel={() => setConfirmDialog({ ...confirmDialog, open: false })}
-        confirmText={confirmDialog.action === 'accepted' ? 'Aceptar Cita' : 'Rechazar Cita'}
-        type={confirmDialog.action === 'accepted' ? 'success' : 'warning'}
+        confirmText={
+          confirmDialog.action === 'accepted' ? 'Aceptar Cita' : 
+          confirmDialog.action === 'rejected' ? 'Rechazar Cita' : 'Cancelar Cita'
+        }
+        type={
+          confirmDialog.action === 'accepted' ? 'success' : 'warning'
+        }
         loading={actionLoading}
       />
     </Layout>

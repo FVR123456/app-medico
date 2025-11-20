@@ -22,11 +22,15 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 
 logger.info('Initializing Firebase', 'Firebase', { projectId: firebaseConfig.projectId });
 
-// Initialize Firebase
+// Initialize Firebase (instancia principal)
 const app = initializeApp(firebaseConfig);
 
 // Initialize services
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+// Instancia secundaria para crear usuarios sin afectar la sesión actual
+const secondaryApp = initializeApp(firebaseConfig, 'secondary');
+export const secondaryAuth = getAuth(secondaryApp);
 
 logger.debug('Firebase initialized successfully', 'Firebase');

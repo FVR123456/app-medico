@@ -9,20 +9,28 @@ import {
      getDoc,
      onSnapshot,
      deleteDoc,
-     orderBy
+     orderBy,
+     setDoc
 } from "firebase/firestore";
 import { db } from "../firebase-config";
 import { retryWithBackoff } from "./retry";
+import { 
+     isWeekend, 
+     isValidTimeSlot, 
+     isFutureDateTime,
+     generateTimeSlots as generateScheduleSlots
+} from "./appointmentScheduler";
 import type { 
      Appointment, 
      MedicalRecord, 
      VitalSigns, 
      PatientProfile,
-     FamilyMember
+     FamilyMember,
+     MedicalHistory
 } from '../types';
 
 // Re-export types for convenience
-export type { Appointment, MedicalRecord, VitalSigns, PatientProfile, FamilyMember } from '../types';
+export type { Appointment, MedicalRecord, VitalSigns, PatientProfile, FamilyMember, MedicalHistory } from '../types';
 
 // --- Appointments ---
 
@@ -88,10 +96,23 @@ export const createAppointment = async (
           throw new Error('Todos los campos son requeridos');
      }
 
-     const appointmentDate = new Date(`${date}T${time}`);
-     if (appointmentDate < new Date()) {
+     // Validar horario válido
+     if (!isValidTimeSlot(date, time)) {
+          throw new Error('Horario no válido para la fecha seleccionada');
+     }
+
+     // Validar fecha y hora futura
+     if (!isFutureDateTime(date, time)) {
           throw new Error('No puedes agendar citas en el pasado');
      }
+
+     // Verificar si el slot está disponible
+     const availableSlots = await getAvailableSlots(date);
+     if (!availableSlots.includes(time)) {
+          throw new Error('Este horario ya no está disponible');
+     }
+
+     const isWeekendAppointment = isWeekend(date);
 
      return retryWithBackoff(async () => {
           await addDoc(collection(db, "appointments"), {
@@ -101,7 +122,61 @@ export const createAppointment = async (
                time,
                reason: reason.trim(),
                status: 'pending',
+               requiresApproval: isWeekendAppointment,
+               isWeekend: isWeekendAppointment,
                createdAt: new Date().toISOString()
+          });
+     }, { maxRetries: 3, delay: 1000 });
+};
+
+export const updateAppointment = async (
+     appointmentId: string,
+     date: string,
+     time: string,
+     reason: string
+) => {
+     if (!date || !time || !reason.trim()) {
+          throw new Error('Todos los campos son requeridos');
+     }
+
+     // Validar horario válido
+     if (!isValidTimeSlot(date, time)) {
+          throw new Error('Horario no válido para la fecha seleccionada');
+     }
+
+     // Validar fecha y hora futura
+     if (!isFutureDateTime(date, time)) {
+          throw new Error('No puedes agendar citas en el pasado');
+     }
+
+     // Verificar disponibilidad (excluyendo la cita actual)
+     const appointmentsRef = collection(db, "appointments");
+     const q = query(
+          appointmentsRef,
+          where("date", "==", date),
+          where("time", "==", time),
+          where("status", "in", ["pending", "accepted"])
+     );
+     
+     const snapshot = await getDocs(q);
+     const conflictingAppointments = snapshot.docs.filter(doc => doc.id !== appointmentId);
+     
+     if (conflictingAppointments.length > 0) {
+          throw new Error('Este horario ya no está disponible');
+     }
+
+     const isWeekendAppointment = isWeekend(date);
+
+     return retryWithBackoff(async () => {
+          const appointmentRef = doc(db, "appointments", appointmentId);
+          await updateDoc(appointmentRef, {
+               date,
+               time,
+               reason: reason.trim(),
+               requiresApproval: isWeekendAppointment,
+               isWeekend: isWeekendAppointment,
+               status: 'pending', // Volver a pending al editar
+               updatedAt: new Date().toISOString()
           });
      }, { maxRetries: 3, delay: 1000 });
 };
@@ -133,31 +208,7 @@ export const deleteAppointment = async (appointmentId: string) => {
 
 // Generate available time slots
 export const generateTimeSlots = (date: string): string[] => {
-     const slots: string[] = [];
-     const selectedDate = new Date(date);
-     const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 6 = Saturday
-     
-     // Monday to Friday: 6:00 AM - 8:00 PM
-     // Saturday: 8:00 AM - 2:00 PM
-     // Sunday: 10:00 AM - 2:00 PM
-     
-     let startHour = 6;
-     let endHour = 20;
-     
-     if (dayOfWeek === 6) { // Saturday
-          startHour = 8;
-          endHour = 14;
-     } else if (dayOfWeek === 0) { // Sunday
-          startHour = 10;
-          endHour = 14;
-     }
-     
-     for (let hour = startHour; hour < endHour; hour++) {
-          slots.push(`${hour.toString().padStart(2, '0')}:00`);
-          slots.push(`${hour.toString().padStart(2, '0')}:30`);
-     }
-     
-     return slots;
+     return generateScheduleSlots(date);
 };
 
 export const getAvailableSlots = async (date: string): Promise<string[]> => {
@@ -377,3 +428,73 @@ export const deleteFamilyMember = async (
           updatedAt: new Date().toISOString()
      });
 };
+
+// --- Medical History (Historia Clínica) ---
+
+export const createMedicalHistory = async (
+     history: Omit<MedicalHistory, 'id' | 'createdAt' | 'updatedAt'>
+): Promise<string> => {
+     return retryWithBackoff(async () => {
+          const now = new Date().toISOString();
+          
+          // Eliminar campos undefined para evitar errores de Firestore
+          const cleanHistory = JSON.parse(JSON.stringify({
+               ...history,
+               createdAt: now,
+               updatedAt: now,
+          }));
+
+          const historyRef = doc(db, "medicalHistories", history.patientId);
+          await setDoc(historyRef, cleanHistory);
+
+          // Actualizar el perfil del paciente para indicar que tiene historia clínica
+          const patientRef = doc(db, "users", history.patientId);
+          await updateDoc(patientRef, {
+               hasMedicalHistory: true,
+               updatedAt: now,
+          });
+
+          return history.patientId;
+     }, { maxRetries: 3, delay: 1000 });
+};
+
+export const getMedicalHistory = async (patientId: string): Promise<MedicalHistory | null> => {
+     return retryWithBackoff(async () => {
+          const historyRef = doc(db, "medicalHistories", patientId);
+          const historyDoc = await getDoc(historyRef);
+
+          if (!historyDoc.exists()) {
+               return null;
+          }
+
+          return {
+               id: historyDoc.id,
+               ...historyDoc.data(),
+          } as MedicalHistory;
+     }, { maxRetries: 3, delay: 1000 });
+};
+
+export const updateMedicalHistory = async (
+     patientId: string,
+     updates: Partial<Omit<MedicalHistory, 'id' | 'patientId' | 'createdAt'>>
+): Promise<void> => {
+     return retryWithBackoff(async () => {
+          // Eliminar campos undefined para evitar errores de Firestore
+          const cleanUpdates = JSON.parse(JSON.stringify({
+               ...updates,
+               updatedAt: new Date().toISOString(),
+          }));
+          
+          const historyRef = doc(db, "medicalHistories", patientId);
+          await updateDoc(historyRef, cleanUpdates);
+     }, { maxRetries: 3, delay: 1000 });
+};
+
+export const hasMedicalHistory = async (patientId: string): Promise<boolean> => {
+     return retryWithBackoff(async () => {
+          const historyRef = doc(db, "medicalHistories", patientId);
+          const historyDoc = await getDoc(historyRef);
+          return historyDoc.exists();
+     }, { maxRetries: 3, delay: 1000 });
+};
+

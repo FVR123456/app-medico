@@ -20,6 +20,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import HistoryIcon from "@mui/icons-material/History";
 import PeopleIcon from "@mui/icons-material/People";
+import PersonIcon from "@mui/icons-material/Person";
 import { useNotification } from "../context/NotificationContext";
 
 interface LayoutProps {
@@ -140,6 +141,19 @@ const Layout: React.FC<LayoutProps> = ({ children, title }) => {
                     }}
                   >
                     Historial
+                  </Button>
+                  <Button
+                    color="inherit"
+                    onClick={() => navigate("/patient/profile")}
+                    startIcon={<PersonIcon />}
+                    sx={{
+                      fontWeight: isActive("/patient/profile") ? 700 : 400,
+                      bgcolor: isActive("/patient/profile")
+                        ? "action.selected"
+                        : "transparent",
+                    }}
+                  >
+                    Perfil
                   </Button>
                 </>
               )}

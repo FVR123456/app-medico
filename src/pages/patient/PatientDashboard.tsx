@@ -22,6 +22,7 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import HistoryIcon from "@mui/icons-material/History";
 import EventAvailableIcon from "@mui/icons-material/EventAvailable";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import PersonIcon from "@mui/icons-material/Person";
 
 const PatientDashboard = () => {
   const { user } = useAuth();
@@ -182,6 +183,30 @@ const PatientDashboard = () => {
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Ver consultas previas
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": {
+                      transform: "translateY(-4px)",
+                    },
+                  }}
+                  onClick={() => navigate("/patient/profile")}
+                >
+                  <CardContent
+                    sx={{ display: "flex", alignItems: "center", gap: 2, p: 3 }}
+                  >
+                    <PersonIcon sx={{ fontSize: 40, color: "secondary.main" }} />
+                    <Box>
+                      <Typography variant="h6" fontWeight="600">
+                        Mi Perfil
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Editar información personal
                       </Typography>
                     </Box>
                   </CardContent>

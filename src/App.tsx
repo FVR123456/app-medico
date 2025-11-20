@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const CompleteProfile = lazy(() => import('./pages/patient/CompleteProfile'));
+const PatientProfile = lazy(() => import('./pages/patient/PatientProfile'));
 const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
 const BookAppointment = lazy(() => import('./pages/patient/BookAppointment'));
 const MedicalHistory = lazy(() => import('./pages/patient/MedicalHistory'));
@@ -31,13 +32,20 @@ function App() {
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          
+          {/* Complete Profile - accessible after registration */}
           <Route path="/complete-profile" element={
             <ProtectedRoute allowedRoles={['patient']}>
               <CompleteProfile />
             </ProtectedRoute>
           } />
-
+          
           {/* Patient Routes */}
+          <Route path="/patient/profile" element={
+            <ProtectedRoute allowedRoles={['patient']}>
+              <PatientProfile />
+            </ProtectedRoute>
+          } />
           <Route path="/patient-dashboard" element={
             <ProtectedRoute allowedRoles={['patient']}>
               <PatientDashboard />

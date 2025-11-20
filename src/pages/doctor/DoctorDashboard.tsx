@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
-import { Typography, Grid, Card, CardContent, CardActionArea, Avatar, Box, CircularProgress, TextField, InputAdornment, Fade, Stack } from '@mui/material';
+import CreatePatientDialog from '@/components/doctor/CreatePatientDialog';
+import { Typography, Grid, Card, CardContent, CardActionArea, Avatar, Box, CircularProgress, TextField, InputAdornment, Fade, Stack, Button } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { getAllPatients, subscribeToAppointments } from '@/services/firestore';
 import PersonIcon from '@mui/icons-material/Person';
@@ -9,18 +10,22 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import EventIcon from '@mui/icons-material/Event';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import WarningIcon from '@mui/icons-material/Warning';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { useAuth } from '@/context/AuthContext';
+import { useNotification } from '@/context/NotificationContext';
 import type { Appointment } from '@/services/firestore';
 import { logger } from '@/services/logger';
 
 const DoctorDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { showSuccess } = useNotification();
   const [patients, setPatients] = useState<unknown[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<unknown[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showCreatePatientDialog, setShowCreatePatientDialog] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -190,25 +195,35 @@ const DoctorDashboard = () => {
 
           {/* Search Section */}
           <Box sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              placeholder="Buscar paciente por nombre o email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon color="action" />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                maxWidth: { md: 500 },
-                '& .MuiOutlinedInput-root': {
-                  backgroundColor: 'background.paper',
-                }
-              }}
-            />
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+              <TextField
+                fullWidth
+                placeholder="Buscar paciente por nombre o email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  maxWidth: { md: 500 },
+                  '& .MuiOutlinedInput-root': {
+                    backgroundColor: 'background.paper',
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                startIcon={<PersonAddIcon />}
+                onClick={() => setShowCreatePatientDialog(true)}
+                sx={{ whiteSpace: 'nowrap', minWidth: 180 }}
+              >
+                Nuevo Paciente
+              </Button>
+            </Stack>
           </Box>
 
           {/* Patients List */}
@@ -289,6 +304,23 @@ const DoctorDashboard = () => {
           </Box>
         </Box>
       </Fade>
+
+      {/* Dialog para crear paciente */}
+      <CreatePatientDialog
+        open={showCreatePatientDialog}
+        onClose={() => setShowCreatePatientDialog(false)}
+        onSuccess={async () => {
+          showSuccess('Paciente creado exitosamente. Se ha enviado un correo para establecer contraseña.');
+          // Recargar lista de pacientes
+          try {
+            const data = await getAllPatients();
+            setPatients(data);
+            setFilteredPatients(data);
+          } catch (error) {
+            logger.error("Error reloading patients", 'DoctorDashboard', error);
+          }
+        }}
+      />
     </Layout>
   );
 };

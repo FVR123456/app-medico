@@ -8,6 +8,7 @@ import { logger } from '@/services/logger';
 interface AuthContextType {
      user: User | null;
      role: 'doctor' | 'patient' | null;
+     profileCompleted: boolean;
      loading: boolean;
      logout: () => Promise<void>;
 }
@@ -15,6 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
      user: null,
      role: null,
+     profileCompleted: false,
      loading: true,
      logout: async () => { },
 });
@@ -24,6 +26,7 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
      const [user, setUser] = useState<User | null>(null);
      const [role, setRole] = useState<'doctor' | 'patient' | null>(null);
+     const [profileCompleted, setProfileCompleted] = useState(false);
      const [loading, setLoading] = useState(true);
 
      useEffect(() => {
@@ -34,19 +37,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     try {
                          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
                          if (userDoc.exists()) {
-                              const userRole = userDoc.data().role as 'doctor' | 'patient';
+                              const userData = userDoc.data();
+                              const userRole = userData.role as 'doctor' | 'patient';
                               setRole(userRole);
+                              
+                              // Doctors always have completed profile, patients need to complete it
+                              setProfileCompleted(userRole === 'doctor' || userData.profileCompleted === true);
+                              
                               logger.debug(`User role fetched: ${userRole}`, 'AuthContext', { uid: currentUser.uid });
                          } else {
                               logger.warn('User document not found in Firestore', 'AuthContext', { uid: currentUser.uid });
                               setRole(null);
+                              setProfileCompleted(false);
                          }
                     } catch (error) {
                          logger.error("Error fetching user role", 'AuthContext', error);
                          setRole(null);
+                         setProfileCompleted(false);
                     }
                } else {
                     setRole(null);
+                    setProfileCompleted(false);
                     logger.debug('User logged out', 'AuthContext');
                }
                setLoading(false);
@@ -66,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
      };
 
      return (
-          <AuthContext.Provider value={{ user, role, loading, logout }}>
+          <AuthContext.Provider value={{ user, role, profileCompleted, loading, logout }}>
                {children}
           </AuthContext.Provider>
      );

@@ -3,10 +3,12 @@ import {
      signInWithEmailAndPassword, 
      signInWithPopup,
      GoogleAuthProvider,
-     updateProfile 
+     updateProfile,
+     sendPasswordResetEmail
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase-config";
+import { auth, secondaryAuth, db } from "../firebase-config";
+import type { PatientProfile } from "../types";
 
 export const registerUser = async (email: string, pass: string, name: string, role: 'doctor' | 'patient') => {
      try {
@@ -23,7 +25,6 @@ export const registerUser = async (email: string, pass: string, name: string, ro
                name: name,
                email: email,
                role: role,
-               profileCompleted: false, // Para saber si completó el wizard
                createdAt: new Date().toISOString()
           });
 
@@ -33,6 +34,63 @@ export const registerUser = async (email: string, pass: string, name: string, ro
      }
 };
 
+/**
+ * Crea un perfil de paciente por parte del doctor (sin contraseña inicial)
+ * Se envía un correo para que el paciente establezca su contraseña
+ * IMPORTANTE: Usa una instancia secundaria de Auth para no afectar la sesión del doctor
+ */
+export const createPatientByDoctor = async (patientData: Omit<PatientProfile, 'id' | 'role' | 'profileCompleted'>) => {
+     try {
+          // Verificar que hay un doctor con sesión activa
+          const currentUser = auth.currentUser;
+          if (!currentUser) {
+               throw new Error('No hay sesión activa de doctor');
+          }
+
+          // Generar una contraseña temporal aleatoria
+          const tempPassword = Math.random().toString(36).slice(-12) + Math.random().toString(36).slice(-12);
+          
+          // 1. Crear usuario en Firebase Auth usando la instancia SECUNDARIA
+          // Esto no afecta la sesión actual del doctor
+          const userCredential = await createUserWithEmailAndPassword(secondaryAuth, patientData.email, tempPassword);
+          const newUser = userCredential.user;
+
+          // 2. Actualizar nombre del usuario
+          await updateProfile(newUser, { displayName: patientData.name });
+
+          // 3. Crear documento completo del paciente en Firestore
+          await setDoc(doc(db, "users", newUser.uid), {
+               ...patientData,
+               uid: newUser.uid,
+               id: newUser.uid,
+               role: 'patient',
+               profileCompleted: true,
+               createdAt: new Date().toISOString(),
+               createdByDoctor: true,
+               createdBy: currentUser.uid // Guardar quién lo creó
+          });
+
+          // 4. Cerrar la sesión en la instancia secundaria
+          await secondaryAuth.signOut();
+
+          // 5. Enviar correo para restablecer contraseña (desde la auth principal)
+          // Usamos la auth principal solo para enviar el correo
+          await sendPasswordResetEmail(auth, patientData.email, {
+               url: window.location.origin + '/login',
+               handleCodeInApp: false
+          });
+
+          return { userId: newUser.uid, email: patientData.email };
+     } catch (error) {
+          // Asegurarse de limpiar la sesión secundaria en caso de error
+          try {
+               await secondaryAuth.signOut();
+          } catch (signOutError) {
+               console.error('Error signing out secondary auth:', signOutError);
+          }
+          throw error;
+     }
+};
 export const loginUser = (email: string, pass: string) => {
      return signInWithEmailAndPassword(auth, email, pass);
 };

@@ -17,34 +17,46 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  TextField
+  TextField,
+  Alert,
+  IconButton,
+  Avatar,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  Badge
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   subscribeToPatientRecords, 
   getPatientById,
   type MedicalRecord,
-  updateMedicalRecord
+  updateMedicalRecord,
+  getMedicalHistory,
+  createMedicalHistory,
+  type MedicalHistory
 } from '@/services/firestore';
 import { useNotification } from '@/context/NotificationContext';
-import EmailIcon from '@mui/icons-material/Email';
-import DescriptionIcon from '@mui/icons-material/Description';
+import { useAuth } from '@/context/AuthContext';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import MedicationIcon from '@mui/icons-material/Medication';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import CakeIcon from '@mui/icons-material/Cake';
-import PhoneIcon from '@mui/icons-material/Phone';
 import AddIcon from '@mui/icons-material/Add';
-import HistoryIcon from '@mui/icons-material/History';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import CloseIcon from '@mui/icons-material/Close';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import PersonIcon from '@mui/icons-material/Person';
 import { logger } from '@/services/logger';
+import { MedicalHistoryForm } from '@/components/medical-history';
 
 const PatientDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
+  const { user } = useAuth();
 
   const [patient, setPatient] = useState<Record<string, unknown> | null>(null);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
@@ -54,6 +66,15 @@ const PatientDetails = () => {
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<MedicalRecord> | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  // Estados para Historia Clínica
+  const [medicalHistory, setMedicalHistory] = useState<MedicalHistory | null>(null);
+  const [showHistoryForm, setShowHistoryForm] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  
+  // Estados para modal de información del paciente
+  const [patientInfoOpen, setPatientInfoOpen] = useState(false);
+  const [medicalAlertsExpanded, setMedicalAlertsExpanded] = useState(true);
 
   useEffect(() => {
     if (!id) return;
@@ -67,8 +88,15 @@ const PatientDetails = () => {
             logger.debug(`Loaded patient: ${patientData.name}`, 'PatientDetails');
           }
         }
+
+        // Cargar historia clínica
+        setLoadingHistory(true);
+        const history = await getMedicalHistory(id);
+        setMedicalHistory(history);
+        setLoadingHistory(false);
       } catch (error) {
         logger.error("Error fetching patient", 'PatientDetails', error);
+        setLoadingHistory(false);
       }
     };
 
@@ -162,6 +190,30 @@ const PatientDetails = () => {
     }
   };
 
+  const handleSaveMedicalHistory = async (historyData: Omit<MedicalHistory, 'id' | 'createdAt' | 'updatedAt'>) => {
+    if (!id || !user) return;
+
+    try {
+      const historyToSave = {
+        ...historyData,
+        doctorId: user.uid,
+        doctorName: user.displayName || user.email || 'Doctor',
+      };
+
+      await createMedicalHistory(historyToSave);
+      showSuccess('Historia clínica guardada exitosamente');
+      logger.info('Medical history created', 'PatientDetails', { patientId: id });
+      
+      // Recargar la historia clínica
+      const updatedHistory = await getMedicalHistory(id);
+      setMedicalHistory(updatedHistory);
+      setShowHistoryForm(false);
+    } catch (error) {
+      logger.error('Error saving medical history', 'PatientDetails', error);
+      showError('Error al guardar la historia clínica');
+    }
+  };
+
   if (loading) {
     return (
       <Layout title="Detalles del Paciente">
@@ -195,417 +247,592 @@ const PatientDetails = () => {
     <Layout title={patientName}>
       <Fade in timeout={500}>
         <Box>
-          {/* Header */}
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-            <Button
-              onClick={() => navigate('/doctor-dashboard')}
-              startIcon={<ArrowBackIcon />}
+          {/* Header Mejorado */}
+          <Box mb={4}>
+            <Stack direction="row" spacing={2} alignItems="center" mb={3}>
+              <Button
+                onClick={() => navigate('/doctor-dashboard')}
+                startIcon={<ArrowBackIcon />}
+                variant="outlined"
+                size="large"
+              >
+                Volver
+              </Button>
+              
+              <Box flex={1} />
+              
+              <Button
+                variant="outlined"
+                startIcon={<AssignmentIcon />}
+                onClick={() => setShowHistoryForm(true)}
+                size="large"
+                color={medicalHistory ? "primary" : "warning"}
+              >
+                {medicalHistory ? 'Ver Historia Clínica' : 'Crear Historia'}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => {
+                  if (!medicalHistory) {
+                    showError('Debe crear la Historia Clínica antes de registrar consultas');
+                    setShowHistoryForm(true);
+                  } else {
+                    navigate(`/consultation/${id}`);
+                  }
+                }}
+                size="large"
+                disabled={!medicalHistory}
+              >
+                Nueva Consulta
+              </Button>
+            </Stack>
+
+            {/* Card de Paciente Compacta */}
+            <Card 
+              elevation={2}
+              sx={{ 
+                borderRadius: 3,
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+              }}
             >
-              Volver a pacientes
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => navigate(`/consultation/${id}`)}
-              size="large"
-            >
-              Nueva Consulta
-            </Button>
+              <CardContent sx={{ p: 3 }}>
+                <Stack direction="row" spacing={3} alignItems="center">
+                  <Avatar
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      bgcolor: 'white',
+                      color: '#667eea',
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      boxShadow: 3
+                    }}
+                  >
+                    {patientName.charAt(0).toUpperCase()}
+                  </Avatar>
+                  
+                  <Box flex={1}>
+                    <Typography variant="h4" fontWeight="700" color="white" gutterBottom>
+                      {patientName}
+                    </Typography>
+                    <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                      <Chip 
+                        label={`${records.length} consultas`}
+                        size="small"
+                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                      />
+                      {calculateAge(patientBirthDate) !== null && (
+                        <Chip 
+                          label={`${calculateAge(patientBirthDate)} años`}
+                          size="small"
+                          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                        />
+                      )}
+                      {patientGender && (
+                        <Chip 
+                          label={patientGender}
+                          size="small"
+                          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                        />
+                      )}
+                      {patientBloodType && (
+                        <Chip 
+                          label={patientBloodType}
+                          size="small"
+                          sx={{ bgcolor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 700 }}
+                        />
+                      )}
+                    </Stack>
+                  </Box>
+                  
+                  <Button
+                    variant="contained"
+                    startIcon={<InfoOutlinedIcon />}
+                    onClick={() => setPatientInfoOpen(true)}
+                    size="large"
+                    sx={{
+                      bgcolor: 'white',
+                      color: '#667eea',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.9)'
+                      }
+                    }}
+                  >
+                    Ver Información
+                  </Button>
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* Alerta si no tiene historia clínica */}
+            {!medicalHistory && (
+              <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
+                <Typography variant="body2" fontWeight="600">
+                  Este paciente aún no tiene Historia Clínica completa
+                </Typography>
+                <Typography variant="body2">
+                  Complete la Historia Clínica antes de registrar consultas médicas.
+                </Typography>
+              </Alert>
+            )}
           </Box>
 
-          <Grid container spacing={3}>
-            {/* Left Sidebar - Patient Info */}
-            <Grid size={{ xs: 12, lg: 4 }}>
-              <Stack spacing={3}>
-                {/* Patient Card */}
-                <Card>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" gap={2} mb={3}>
-                      <Box
-                        sx={{
-                          width: 72,
-                          height: 72,
-                          borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'white',
-                          fontSize: '2rem',
-                          fontWeight: 'bold'
-                        }}
-                      >
-                        {patientName.charAt(0).toUpperCase()}
-                      </Box>
-                      <Box flex={1}>
-                        <Typography variant="h5" fontWeight="600">
-                          {patientName}
+          {/* Alertas Médicas Colapsables */}
+          {(patientAllergies.length > 0 || patientConditions.length > 0 || allAllergies.length > 0) && (
+            <Card sx={{ mb: 3, borderRadius: 2, border: '2px solid #fbbf24' }}>
+              <CardContent>
+                <Box 
+                  onClick={() => setMedicalAlertsExpanded(!medicalAlertsExpanded)}
+                  sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <Typography variant="h6" fontWeight="600" color="warning.main">
+                    Alertas Médicas Importantes
+                  </Typography>
+                  <IconButton size="small">
+                    {medicalAlertsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  </IconButton>
+                </Box>
+                
+                <Collapse in={medicalAlertsExpanded}>
+                  <Stack spacing={2} sx={{ mt: 2 }}>
+                    {/* Alergias del perfil */}
+                    {patientAllergies.length > 0 && (
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                          Alergias Conocidas
                         </Typography>
-                        <Chip label="Paciente" size="small" color="primary" sx={{ mt: 0.5 }} />
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {patientAllergies.map((allergy, index) => (
+                            <Chip key={index} label={allergy} color="warning" size="medium" />
+                          ))}
+                        </Stack>
                       </Box>
-                    </Box>
+                    )}
 
-                    <Divider sx={{ my: 2 }} />
-
-                    <Stack spacing={2}>
-                      {/* Email */}
-                      <Box display="flex" alignItems="flex-start" gap={1}>
-                        <EmailIcon color="action" fontSize="small" sx={{ mt: 0.5 }} />
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Email
-                          </Typography>
-                          <Typography variant="body2" sx={{ wordBreak: 'break-all' }}>
-                            {patientEmail}
-                          </Typography>
-                        </Box>
+                    {/* Alergias de consultas */}
+                    {allAllergies.length > 0 && (
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                          Alergias Registradas en Consultas
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {allAllergies.map((allergy, index) => (
+                            <Chip key={index} label={allergy} color="warning" variant="outlined" size="medium" />
+                          ))}
+                        </Stack>
                       </Box>
+                    )}
 
-                      {/* Phone */}
-                      {patientPhone && (
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <PhoneIcon color="action" fontSize="small" sx={{ mt: 0.5 }} />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Teléfono
-                            </Typography>
-                            <Typography variant="body2">
-                              {patientPhone}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )}
+                    {/* Condiciones crónicas */}
+                    {patientConditions.length > 0 && (
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                          Condiciones Crónicas
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {patientConditions.map((condition, index) => (
+                            <Chip key={index} label={condition} color="error" size="medium" />
+                          ))}
+                        </Stack>
+                      </Box>
+                    )}
+                  </Stack>
+                </Collapse>
+              </CardContent>
+            </Card>
+          )}
 
-                      {/* Age */}
-                      {calculateAge(patientBirthDate) !== null && (
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <CakeIcon color="action" fontSize="small" sx={{ mt: 0.5 }} />
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Edad
-                            </Typography>
-                            <Typography variant="body2">
-                              {calculateAge(patientBirthDate)} años
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )}
+          {/* Historial Médico */}
+          <Card sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ p: 3 }}>
+              <Typography variant="h5" fontWeight="600" gutterBottom>
+                Historial de Consultas
+              </Typography>
 
-                      {/* Gender */}
-                      {patientGender && (
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Género
-                            </Typography>
-                            <Typography variant="body2">
-                              {patientGender}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )}
-
-                      {/* Blood Type */}
-                      {patientBloodType && (
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Tipo de Sangre
-                            </Typography>
-                            <Typography variant="body2" fontWeight="600" color="error.main">
-                              {patientBloodType}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      )}
-
-                      {/* Height & Weight */}
-                      {(patientHeight || patientWeight) && (
-                        <Box display="flex" alignItems="flex-start" gap={1}>
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Medidas
-                            </Typography>
-                            <Typography variant="body2">
-                              {patientHeight && `${patientHeight} cm`}
-                              {patientHeight && patientWeight && ' • '}
-                              {patientWeight && `${patientWeight} kg`}
-                              {patientHeight && patientWeight && (
-                                <Typography component="span" variant="body2" color="primary" sx={{ ml: 1 }}>
-                                  (IMC: {((patientWeight / ((patientHeight / 100) ** 2))).toFixed(1)})
-                                </Typography>
+              {records.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 8 }}>
+                  <AssignmentIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    Sin consultas registradas
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Registre la primera consulta para comenzar el historial médico
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
+                    onClick={() => {
+                      if (!medicalHistory) {
+                        showError('Debe crear la Historia Clínica primero');
+                        setShowHistoryForm(true);
+                      } else {
+                        navigate(`/consultation/${id}`);
+                      }
+                    }}
+                    size="large"
+                    disabled={!medicalHistory}
+                  >
+                    Crear Primera Consulta
+                  </Button>
+                </Box>
+              ) : (
+                <Stack spacing={2} sx={{ mt: 2 }}>
+                  {records.map((record) => (
+                    <Fade in timeout={300} key={record.id}>
+                      <Card 
+                        elevation={0}
+                        sx={{ 
+                          cursor: 'pointer',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 2,
+                          '&:hover': { 
+                            borderColor: 'primary.main',
+                            boxShadow: 2
+                          }, 
+                          transition: 'all 0.2s'
+                        }}
+                        onClick={() => handleOpenModal(record)}
+                      >
+                        <CardContent sx={{ p: 2.5 }}>
+                          <Stack direction="row" spacing={2} alignItems="flex-start">
+                            <Box
+                              sx={{
+                                minWidth: 60,
+                                height: 60,
+                                borderRadius: 2,
+                                bgcolor: 'primary.main',
+                                color: 'white',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              <Typography variant="h6">
+                                {new Date(record.date).getDate()}
+                              </Typography>
+                              <Typography variant="caption">
+                                {new Date(record.date).toLocaleDateString('es-MX', { month: 'short' })}
+                              </Typography>
+                            </Box>
+                            
+                            <Box flex={1}>
+                              <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                                {new Date(record.date).toLocaleDateString('es-MX', {
+                                  weekday: 'long',
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric'
+                                })}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary" gutterBottom>
+                                Dr. {record.doctorName}
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  mt: 1,
+                                  overflow: 'hidden', 
+                                  textOverflow: 'ellipsis', 
+                                  display: '-webkit-box', 
+                                  WebkitLineClamp: 2, 
+                                  WebkitBoxOrient: 'vertical' 
+                                }}
+                              >
+                                {record.diagnosis}
+                              </Typography>
+                            </Box>
+                            
+                            <Stack spacing={1}>
+                              {record.vitalSigns?.bloodPressure && (
+                                <Chip 
+                                  label={`${record.vitalSigns.bloodPressure}`} 
+                                  size="small" 
+                                  variant="outlined"
+                                />
                               )}
-                            </Typography>
-                          </Box>
+                              {record.vitalSigns?.heartRate && (
+                                <Chip 
+                                  label={`${record.vitalSigns.heartRate} bpm`} 
+                                  size="small" 
+                                  variant="outlined"
+                                />
+                              )}
+                            </Stack>
+                          </Stack>
+                        </CardContent>
+                      </Card>
+                    </Fade>
+                  ))}
+                </Stack>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Modal - Información del Paciente */}
+          <Dialog
+            open={patientInfoOpen}
+            onClose={() => setPatientInfoOpen(false)}
+            maxWidth="md"
+            fullWidth
+          >
+            <DialogTitle>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Avatar
+                    sx={{
+                      width: 50,
+                      height: 50,
+                      bgcolor: 'primary.main',
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {patientName.charAt(0).toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" fontWeight="600">
+                      {patientName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Información del Paciente
+                    </Typography>
+                  </Box>
+                </Stack>
+                <IconButton onClick={() => setPatientInfoOpen(false)}>
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers>
+              <Stack spacing={3}>
+                {/* Información Personal */}
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
+                    Información Personal
+                  </Typography>
+                  <List dense>
+                    <ListItem>
+                      <ListItemText
+                        primary="Email"
+                        secondary={patientEmail}
+                      />
+                    </ListItem>
+                    {patientPhone && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Teléfono"
+                          secondary={patientPhone}
+                        />
+                      </ListItem>
+                    )}
+                    {calculateAge(patientBirthDate) !== null && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Edad"
+                          secondary={`${calculateAge(patientBirthDate)} años`}
+                        />
+                      </ListItem>
+                    )}
+                    {patientGender && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Género"
+                          secondary={patientGender}
+                        />
+                      </ListItem>
+                    )}
+                    {patientAddress && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Dirección"
+                          secondary={patientAddress}
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+                </Box>
+
+                <Divider />
+
+                {/* Información Médica */}
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
+                    Información Médica
+                  </Typography>
+                  <List dense>
+                    {patientBloodType && (
+                      <ListItem>
+                        <ListItemText
+                          primary="Tipo de Sangre"
+                          secondary={
+                            <Chip 
+                              label={patientBloodType} 
+                              size="small" 
+                              color="error"
+                              sx={{ fontWeight: 700 }}
+                            />
+                          }
+                        />
+                      </ListItem>
+                    )}
+                    {(patientHeight || patientWeight) && (
+                      <>
+                        {patientHeight && (
+                          <ListItem>
+                            <ListItemText
+                              primary="Altura"
+                              secondary={`${patientHeight} cm`}
+                            />
+                          </ListItem>
+                        )}
+                        {patientWeight && (
+                          <ListItem>
+                            <ListItemText
+                              primary="Peso"
+                              secondary={`${patientWeight} kg`}
+                            />
+                          </ListItem>
+                        )}
+                        {patientHeight && patientWeight && (
+                          <ListItem>
+                            <ListItemText
+                              primary="IMC"
+                              secondary={`${((patientWeight / ((patientHeight / 100) ** 2))).toFixed(1)} kg/m²`}
+                            />
+                          </ListItem>
+                        )}
+                      </>
+                    )}
+                    <ListItem>
+                      <ListItemText
+                        primary="Consultas Registradas"
+                        secondary={`${records.length} ${records.length === 1 ? 'consulta' : 'consultas'}`}
+                      />
+                    </ListItem>
+                  </List>
+                </Box>
+
+                {/* Medicamentos */}
+                {(patientMedications.length > 0 || allMedications.length > 0) && (
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
+                        Medicamentos
+                      </Typography>
+                      {patientMedications.length > 0 && (
+                        <Box mb={2}>
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            Del Perfil:
+                          </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                            {patientMedications.map((med, index) => (
+                              <Chip key={index} label={med} size="small" color="info" />
+                            ))}
+                          </Stack>
                         </Box>
                       )}
-
-                      {/* Records Count */}
-                      <Box display="flex" alignItems="flex-start" gap={1}>
-                        <HistoryIcon color="action" fontSize="small" sx={{ mt: 0.5 }} />
+                      {allMedications.length > 0 && (
                         <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Historial
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            De Consultas:
                           </Typography>
-                          <Typography variant="body2">
-                            {records.length} {records.length === 1 ? 'consulta' : 'consultas'}
-                          </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                            {allMedications.map((med, index) => (
+                              <Chip key={index} label={med} size="small" color="info" variant="outlined" />
+                            ))}
+                          </Stack>
                         </Box>
-                      </Box>
-                    </Stack>
-                  </CardContent>
-                </Card>
-
-                {/* Patient Profile Allergies (from profile, not records) */}
-                {patientAllergies.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #f59e0b', backgroundColor: '#fef3c7' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WarningAmberIcon fontSize="small" color="warning" />
-                        Alergias Conocidas (Perfil)
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-                        {patientAllergies.map((allergy, index) => (
-                          <Chip key={index} label={allergy} size="small" color="warning" variant="filled" />
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
+                      )}
+                    </Box>
+                  </>
                 )}
 
-                {/* Medical Alerts from records */}
-                {allAllergies.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #f59e0b', backgroundColor: '#fef3c7' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WarningAmberIcon fontSize="small" color="warning" />
-                        Alergias Detectadas en Consultas
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-                        {allAllergies.map((allergy, index) => (
-                          <Chip key={index} label={allergy} size="small" color="warning" />
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Chronic Conditions */}
-                {patientConditions.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #ef4444', backgroundColor: '#fee2e2' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MedicationIcon fontSize="small" color="error" />
-                        Condiciones Crónicas
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-                        {patientConditions.map((condition, index) => (
-                          <Chip key={index} label={condition} size="small" color="error" />
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Current Medications from profile */}
-                {patientMedications.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #3b82f6', backgroundColor: '#eff6ff' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MedicationIcon fontSize="small" color="info" />
-                        Medicamentos Actuales (Perfil)
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-                        {patientMedications.map((med, index) => (
-                          <Chip key={index} label={med} size="small" color="info" variant="filled" />
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Current Medications from records */}
-                {allMedications.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #3b82f6', backgroundColor: '#eff6ff' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MedicationIcon fontSize="small" color="info" />
-                        Medicamentos en Consultas
-                      </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-                        {allMedications.map((med, index) => (
-                          <Chip key={index} label={med} size="small" color="info" />
-                        ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Previous Surgeries */}
+                {/* Cirugías */}
                 {patientSurgeries.length > 0 && (
-                  <Card sx={{ borderLeft: '4px solid #8b5cf6', backgroundColor: '#f5f3ff' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <HistoryIcon fontSize="small" color="secondary" />
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
                         Cirugías Previas
                       </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         {patientSurgeries.map((surgery, index) => (
                           <Chip key={index} label={surgery} size="small" color="secondary" />
                         ))}
-                      </Box>
-                    </CardContent>
-                  </Card>
+                      </Stack>
+                    </Box>
+                  </>
                 )}
 
-                {/* Emergency Contact */}
+                {/* Contacto de Emergencia */}
                 {emergencyContact && (
-                  <Card sx={{ borderLeft: '4px solid #10b981', backgroundColor: '#f0fdf4' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <PhoneIcon fontSize="small" color="success" />
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
                         Contacto de Emergencia
                       </Typography>
-                      <Box mt={1}>
-                        <Typography variant="body2" fontWeight="600">
-                          {emergencyContact.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {emergencyContact.relationship}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {emergencyContact.phone}
-                        </Typography>
-                      </Box>
-                    </CardContent>
-                  </Card>
+                      <List dense>
+                        <ListItem>
+                          <ListItemText
+                            primary="Nombre"
+                            secondary={emergencyContact.name}
+                          />
+                        </ListItem>
+                        <ListItem>
+                          <ListItemText
+                            primary="Relación"
+                            secondary={emergencyContact.relationship}
+                          />
+                        </ListItem>
+                        <ListItem>
+                          <ListItemText
+                            primary="Teléfono"
+                            secondary={emergencyContact.phone}
+                          />
+                        </ListItem>
+                      </List>
+                    </Box>
+                  </>
                 )}
 
-                {/* Address */}
-                {patientAddress && (
-                  <Card>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                        Dirección
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {patientAddress}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                )}
-
-                {/* Last Visit Info */}
+                {/* Última Consulta */}
                 {lastRecord && (
-                  <Card sx={{ backgroundColor: '#f0fdf4', borderLeft: '4px solid #10b981' }}>
-                    <CardContent>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="primary">
                         Última Consulta
                       </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary">
                         {new Date(lastRecord.date).toLocaleDateString('es-MX', {
+                          weekday: 'long',
                           year: 'numeric',
                           month: 'long',
                           day: 'numeric'
                         })}
                       </Typography>
                       {getLatestBMI() && (
-                        <Box mt={1}>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            IMC Actual
-                          </Typography>
-                          <Typography variant="body2" fontWeight="600">
-                            {getLatestBMI()} kg/m²
-                          </Typography>
-                        </Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          IMC en última consulta: <strong>{getLatestBMI()} kg/m²</strong>
+                        </Typography>
                       )}
-                    </CardContent>
-                  </Card>
+                    </Box>
+                  </>
                 )}
               </Stack>
-            </Grid>
-
-            {/* Right - Medical History */}
-            <Grid size={{ xs: 12, lg: 8 }}>
-              <Box>
-                <Box display="flex" alignItems="center" gap={1} mb={3}>
-                  <HistoryIcon color="primary" />
-                  <Typography variant="h5" fontWeight="600">
-                    Historial Médico
-                  </Typography>
-                  <Chip label={`${records.length}`} size="small" />
-                </Box>
-
-                {records.length === 0 ? (
-                  <Card>
-                    <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                      <DescriptionIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2, opacity: 0.3 }} />
-                      <Typography variant="h6" color="text.secondary" gutterBottom>
-                        Sin registros médicos
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                        Crea la primera consulta para comenzar a llevar el historial médico
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        startIcon={<AddIcon />}
-                        onClick={() => navigate(`/consultation/${id}`)}
-                      >
-                        Crear Primera Consulta
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Stack spacing={2}>
-                    {records.map((record) => (
-                      <Fade in timeout={300} key={record.id}>
-                        <Card 
-                          sx={{ 
-                            cursor: 'pointer',
-                            '&:hover': { 
-                              boxShadow: 4, 
-                              transform: 'translateY(-2px)',
-                              backgroundColor: 'action.hover'
-                            }, 
-                            transition: 'all 0.3s'
-                          }}
-                          onClick={() => handleOpenModal(record)}
-                        >
-                          <CardContent>
-                            <Box display="flex" justifyContent="space-between" alignItems="flex-start" gap={2}>
-                              <Box flex={1}>
-                                <Typography variant="subtitle1" fontWeight="600">
-                                  {new Date(record.date).toLocaleDateString('es-MX', {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {new Date(record.date).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })} • Dr. {record.doctorName}
-                                </Typography>
-                                <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical' }}>
-                                  {record.diagnosis}
-                                </Typography>
-                              </Box>
-                              <Box display="flex" gap={1} flexWrap="wrap" justifyContent="flex-end">
-                                {record.vitalSigns?.bloodPressure && (
-                                  <Chip label={`PA: ${record.vitalSigns.bloodPressure}`} size="small" variant="outlined" />
-                                )}
-                                {record.vitalSigns?.heartRate && (
-                                  <Chip label={`FC: ${record.vitalSigns.heartRate} bpm`} size="small" variant="outlined" />
-                                )}
-                              </Box>
-                            </Box>
-                          </CardContent>
-                        </Card>
-                      </Fade>
-                    ))}
-                  </Stack>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setPatientInfoOpen(false)} variant="contained">
+                Cerrar
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* Modal - Consulta Completa */}
           <Dialog 
@@ -614,58 +841,94 @@ const PatientDetails = () => {
             maxWidth="md"
             fullWidth
           >
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="h6" fontWeight="600">
-                Consulta del {selectedRecord && new Date(selectedRecord.date).toLocaleDateString('es-MX')}
-              </Typography>
-              <Button 
-                onClick={handleCloseModal}
-                size="small"
-                variant="outlined"
-                startIcon={<CloseIcon />}
-              >
-                Cerrar
-              </Button>
+            <DialogTitle>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Typography variant="h6" fontWeight="600">
+                  Consulta del {selectedRecord && new Date(selectedRecord.date).toLocaleDateString('es-MX')}
+                </Typography>
+                <IconButton onClick={handleCloseModal} size="small">
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
             </DialogTitle>
 
-            <DialogContent sx={{ mt: 2, maxHeight: '70vh', overflowY: 'auto' }}>
+            <DialogContent dividers sx={{ mt: 1 }}>
               {selectedRecord && (
                 <Stack spacing={3}>
                   {/* Header Info */}
-                  <Box>
+                  <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
                     <Typography variant="body2" color="text.secondary">
-                      {new Date(selectedRecord.date).toLocaleString('es-MX')} • Dr. {selectedRecord.doctorName}
+                      {new Date(selectedRecord.date).toLocaleString('es-MX')}
                     </Typography>
-                  </Box>
+                    <Typography variant="body2" fontWeight="600" sx={{ mt: 0.5 }}>
+                      Dr. {selectedRecord.doctorName}
+                    </Typography>
+                  </Paper>
 
                   {/* Signos Vitales */}
                   {selectedRecord.vitalSigns && (
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                        📊 Signos Vitales
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                        Signos Vitales
                       </Typography>
-                      <Grid container spacing={1}>
+                      <Grid container spacing={2}>
                         {selectedRecord.vitalSigns.bloodPressure && (
                           <Grid size={{ xs: 6, sm: 4 }}>
-                            <Paper variant="outlined" sx={{ p: 1.5 }}>
-                              <Typography variant="caption" color="text.secondary">PA</Typography>
-                              <Typography variant="body2" fontWeight="600">{selectedRecord.vitalSigns.bloodPressure}</Typography>
+                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Presión Arterial
+                              </Typography>
+                              <Typography variant="h6" fontWeight="600" color="primary">
+                                {selectedRecord.vitalSigns.bloodPressure}
+                              </Typography>
                             </Paper>
                           </Grid>
                         )}
                         {selectedRecord.vitalSigns.heartRate && (
                           <Grid size={{ xs: 6, sm: 4 }}>
-                            <Paper variant="outlined" sx={{ p: 1.5 }}>
-                              <Typography variant="caption" color="text.secondary">FC</Typography>
-                              <Typography variant="body2" fontWeight="600">{selectedRecord.vitalSigns.heartRate}</Typography>
+                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Frecuencia Cardíaca
+                              </Typography>
+                              <Typography variant="h6" fontWeight="600" color="primary">
+                                {selectedRecord.vitalSigns.heartRate}
+                              </Typography>
                             </Paper>
                           </Grid>
                         )}
                         {selectedRecord.vitalSigns.temperature && (
                           <Grid size={{ xs: 6, sm: 4 }}>
-                            <Paper variant="outlined" sx={{ p: 1.5 }}>
-                              <Typography variant="caption" color="text.secondary">Temp.</Typography>
-                              <Typography variant="body2" fontWeight="600">{selectedRecord.vitalSigns.temperature}</Typography>
+                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Temperatura
+                              </Typography>
+                              <Typography variant="h6" fontWeight="600" color="primary">
+                                {selectedRecord.vitalSigns.temperature}°C
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        )}
+                        {selectedRecord.vitalSigns.weight && (
+                          <Grid size={{ xs: 6, sm: 4 }}>
+                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Peso
+                              </Typography>
+                              <Typography variant="h6" fontWeight="600" color="primary">
+                                {selectedRecord.vitalSigns.weight} kg
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        )}
+                        {selectedRecord.vitalSigns.height && (
+                          <Grid size={{ xs: 6, sm: 4 }}>
+                            <Paper variant="outlined" sx={{ p: 2, textAlign: 'center' }}>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                Altura
+                              </Typography>
+                              <Typography variant="h6" fontWeight="600" color="primary">
+                                {selectedRecord.vitalSigns.height} cm
+                              </Typography>
                             </Paper>
                           </Grid>
                         )}
@@ -676,112 +939,118 @@ const PatientDetails = () => {
                   {/* Alergias */}
                   {selectedRecord.allergies && selectedRecord.allergies.length > 0 && (
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WarningAmberIcon fontSize="small" color="warning" />
-                        Alergias
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="warning.main">
+                        Alergias Reportadas
                       </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         {selectedRecord.allergies.map((allergy, index) => (
-                          <Chip key={index} label={allergy} color="warning" size="small" />
+                          <Chip key={index} label={allergy} color="warning" size="medium" />
                         ))}
-                      </Box>
+                      </Stack>
                     </Box>
                   )}
 
                   {/* Medicamentos */}
                   {selectedRecord.currentMedications && selectedRecord.currentMedications.length > 0 && (
                     <Box>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <MedicationIcon fontSize="small" color="info" />
-                        Medicamentos
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom color="info.main">
+                        Medicamentos Actuales
                       </Typography>
-                      <Box display="flex" flexWrap="wrap" gap={1}>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                         {selectedRecord.currentMedications.map((med, index) => (
-                          <Chip key={index} label={med} color="info" size="small" />
+                          <Chip key={index} label={med} color="info" size="medium" />
                         ))}
-                      </Box>
+                      </Stack>
                     </Box>
                   )}
+
+                  <Divider />
 
                   {/* Diagnosis */}
-                  {!editMode ? (
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                        🔍 Diagnóstico
-                      </Typography>
-                      <Typography variant="body2" sx={{ p: 1.5, backgroundColor: 'background.default', borderRadius: 1, whiteSpace: 'pre-line' }}>
-                        {selectedRecord.diagnosis}
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <TextField
-                      fullWidth
-                      label="Diagnóstico"
-                      multiline
-                      rows={3}
-                      value={editData?.diagnosis || ''}
-                      onChange={(e) => setEditData({ ...editData, diagnosis: e.target.value })}
-                      variant="outlined"
-                    />
-                  )}
-
-                  {/* Prescription */}
-                  {!editMode ? (
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                        💊 Indicaciones y Tratamiento
-                      </Typography>
-                      <Typography variant="body2" sx={{ p: 1.5, backgroundColor: 'background.default', borderRadius: 1, whiteSpace: 'pre-line' }}>
-                        {selectedRecord.prescription}
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <TextField
-                      fullWidth
-                      label="Indicaciones"
-                      multiline
-                      rows={3}
-                      value={editData?.prescription || ''}
-                      onChange={(e) => setEditData({ ...editData, prescription: e.target.value })}
-                      variant="outlined"
-                    />
-                  )}
-
-                  {/* Notes */}
-                  {selectedRecord.notes && (
-                    !editMode ? (
-                      <Box>
-                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                          📝 Notas Adicionales
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                      Diagnóstico
+                    </Typography>
+                    {!editMode ? (
+                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                          {selectedRecord.diagnosis}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ p: 1.5, backgroundColor: 'background.default', borderRadius: 1, whiteSpace: 'pre-line' }}>
-                          {selectedRecord.notes}
-                        </Typography>
-                      </Box>
+                      </Paper>
                     ) : (
                       <TextField
                         fullWidth
-                        label="Notas"
                         multiline
-                        rows={2}
-                        value={editData?.notes || ''}
-                        onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                        rows={3}
+                        value={editData?.diagnosis || ''}
+                        onChange={(e) => setEditData({ ...editData, diagnosis: e.target.value })}
                         variant="outlined"
                       />
-                    )
+                    )}
+                  </Box>
+
+                  {/* Prescription */}
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                      Indicaciones y Tratamiento
+                    </Typography>
+                    {!editMode ? (
+                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                          {selectedRecord.prescription}
+                        </Typography>
+                      </Paper>
+                    ) : (
+                      <TextField
+                        fullWidth
+                        multiline
+                        rows={4}
+                        value={editData?.prescription || ''}
+                        onChange={(e) => setEditData({ ...editData, prescription: e.target.value })}
+                        variant="outlined"
+                      />
+                    )}
+                  </Box>
+
+                  {/* Notes */}
+                  {(selectedRecord.notes || editMode) && (
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                        Notas Adicionales
+                      </Typography>
+                      {!editMode ? (
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'pre-line' }}>
+                            {selectedRecord.notes || 'Sin notas adicionales'}
+                          </Typography>
+                        </Paper>
+                      ) : (
+                        <TextField
+                          fullWidth
+                          multiline
+                          rows={2}
+                          value={editData?.notes || ''}
+                          onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                          variant="outlined"
+                        />
+                      )}
+                    </Box>
                   )}
                 </Stack>
               )}
             </DialogContent>
 
-            <DialogActions sx={{ p: 2, gap: 1 }}>
+            <DialogActions sx={{ p: 2.5, gap: 1 }}>
               {!editMode ? (
                 <>
-                  <Button onClick={handleCloseModal}>Cerrar</Button>
+                  <Button onClick={handleCloseModal} size="large">
+                    Cerrar
+                  </Button>
                   <Button 
                     variant="contained" 
                     startIcon={<EditIcon />}
                     onClick={() => setEditMode(true)}
+                    size="large"
                   >
                     Editar
                   </Button>
@@ -791,6 +1060,7 @@ const PatientDetails = () => {
                   <Button 
                     onClick={() => setEditMode(false)}
                     disabled={savingEdit}
+                    size="large"
                   >
                     Cancelar
                   </Button>
@@ -800,12 +1070,52 @@ const PatientDetails = () => {
                     startIcon={<SaveIcon />}
                     onClick={handleSaveEdit}
                     disabled={savingEdit}
+                    size="large"
                   >
                     {savingEdit ? 'Guardando...' : 'Guardar Cambios'}
                   </Button>
                 </>
               )}
             </DialogActions>
+          </Dialog>
+
+          {/* Dialog Historia Clínica */}
+          <Dialog
+            open={showHistoryForm}
+            onClose={() => setShowHistoryForm(false)}
+            maxWidth="lg"
+            fullWidth
+            scroll="paper"
+          >
+            <DialogTitle>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <AssignmentIcon color="primary" sx={{ fontSize: 28 }} />
+                  <Typography variant="h6" fontWeight="600">
+                    {medicalHistory ? 'Historia Clínica' : 'Nueva Historia Clínica'}
+                  </Typography>
+                </Stack>
+                <IconButton onClick={() => setShowHistoryForm(false)}>
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers>
+              {loadingHistory ? (
+                <Box display="flex" justifyContent="center" py={4}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <MedicalHistoryForm
+                  patientId={id || ''}
+                  patientName={patientName}
+                  patientGender={patientGender as 'Masculino' | 'Femenino' | 'Otro' | undefined}
+                  existingHistory={medicalHistory || undefined}
+                  onSave={handleSaveMedicalHistory}
+                  onCancel={() => setShowHistoryForm(false)}
+                />
+              )}
+            </DialogContent>
           </Dialog>
         </Box>
       </Fade>

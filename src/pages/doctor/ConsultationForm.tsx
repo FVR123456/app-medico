@@ -7,6 +7,7 @@ import { useNotification } from '@/context/NotificationContext';
 import { 
   addMedicalRecord, 
   getPatientById, 
+  getMedicalHistory,
   type VitalSigns 
 } from '@/services/firestore';
 import { logger } from '@/services/logger';
@@ -43,6 +44,7 @@ const ConsultationForm = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [hasMedicalHistory, setHasMedicalHistory] = useState(false);
 
   // Form state
   const [vitalSigns, setVitalSigns] = useState<VitalSigns>({});
@@ -68,6 +70,14 @@ const ConsultationForm = () => {
           setError('Paciente no encontrado');
         } else {
           setPatient(patientData);
+        }
+
+        // Verificar si tiene historia clínica
+        const history = await getMedicalHistory(patientId);
+        setHasMedicalHistory(!!history);
+        
+        if (!history) {
+          setError('Este paciente no tiene Historia Clínica registrada. Debe completarla antes de crear consultas.');
         }
       } catch (err) {
         logger.error('Error fetching patient', 'ConsultationForm', err);
@@ -125,6 +135,12 @@ const ConsultationForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!hasMedicalHistory) {
+      setError('Debe completar la Historia Clínica antes de crear consultas');
+      showError('Debe completar la Historia Clínica antes de crear consultas');
+      return;
+    }
 
     if (!diagnosis.trim() || !prescription.trim()) {
       setError('El diagnóstico y las indicaciones son obligatorios');
@@ -208,6 +224,25 @@ const ConsultationForm = () => {
           >
             Volver a detalles del paciente
           </Button>
+
+          {/* Alerta si no tiene historia clínica */}
+          {!hasMedicalHistory && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              <Typography variant="body2" fontWeight="600">
+                ⚠️ Este paciente no tiene Historia Clínica registrada
+              </Typography>
+              <Typography variant="body2">
+                Debe completar la Historia Clínica antes de poder crear consultas médicas.
+                <Button 
+                  size="small" 
+                  onClick={() => navigate(`/patient-details/${patientId}`)}
+                  sx={{ ml: 1 }}
+                >
+                  Ir a Historia Clínica
+                </Button>
+              </Typography>
+            </Alert>
+          )}
 
           <Grid container spacing={3}>
             {/* Left - Patient Info Summary */}
@@ -478,7 +513,7 @@ const ConsultationForm = () => {
                             resetForm();
                             navigate(`/patient-details/${patientId}`);
                           }}
-                          disabled={submitting}
+                          disabled={submitting || !hasMedicalHistory}
                           startIcon={<ArrowBackIcon />}
                         >
                           Cancelar
@@ -486,7 +521,7 @@ const ConsultationForm = () => {
                         <Button
                           type="submit"
                           variant="contained"
-                          disabled={submitting}
+                          disabled={submitting || !hasMedicalHistory}
                           startIcon={submitting ? undefined : <SaveIcon />}
                           sx={{ minWidth: 200 }}
                         >
