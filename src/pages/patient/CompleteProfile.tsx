@@ -20,20 +20,22 @@ import {
   Select,
   MenuItem,
   InputAdornment,
-  Card,
-  CardContent,
   Grid,
   Alert,
-  LinearProgress
+  LinearProgress,
+  Fade,
+  alpha,
+  useTheme,
+  Divider
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
-import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-const steps = ['Información Personal', 'Contacto de Emergencia', 'Información Médica'];
+const steps = ['Información Personal', 'Contacto de Emergencia'];
 
 const CompleteProfile = () => {
+  const theme = useTheme();
   const { user } = useAuth();
   const { showError, showSuccess } = useNotification();
   const navigate = useNavigate();
@@ -51,10 +53,6 @@ const CompleteProfile = () => {
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyRelationship, setEmergencyRelationship] = useState('');
-
-  // Paso 3: Información Médica (Opcional)
-  const [insuranceProvider, setInsuranceProvider] = useState('');
-  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -77,10 +75,6 @@ const CompleteProfile = () => {
           setEmergencyName(profile.emergencyContact.name || '');
           setEmergencyPhone(profile.emergencyContact.phone || '');
           setEmergencyRelationship(profile.emergencyContact.relationship || '');
-        }
-        if (profile.insurance) {
-          setInsuranceProvider(profile.insurance.provider || '');
-          setInsurancePolicyNumber(profile.insurance.policyNumber || '');
         }
 
         // Si el perfil ya está completo, redirigir al dashboard
@@ -116,7 +110,6 @@ const CompleteProfile = () => {
         newErrors.emergencyRelationship = 'La relación es requerida';
       }
     }
-    // Paso 2 (información médica) es opcional
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -149,14 +142,6 @@ const CompleteProfile = () => {
         profileCompleted: true
       };
 
-      // Agregar información de seguro si está completa
-      if (insuranceProvider && insurancePolicyNumber) {
-        profileData.insurance = {
-          provider: insuranceProvider,
-          policyNumber: insurancePolicyNumber
-        };
-      }
-
       await updatePatientProfile(user.uid, profileData);
       showSuccess('Perfil completado exitosamente');
       navigate('/patient-dashboard');
@@ -174,8 +159,6 @@ const CompleteProfile = () => {
         return <PersonIcon />;
       case 1:
         return <ContactPhoneIcon />;
-      case 2:
-        return <HealthAndSafetyIcon />;
       default:
         return null;
     }
@@ -291,56 +274,6 @@ const CompleteProfile = () => {
           </Box>
         );
 
-      case 2:
-        return (
-          <Box>
-            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
-              <HealthAndSafetyIcon color="primary" />
-              Información de Seguro (Opcional)
-            </Typography>
-            <Alert severity="info" sx={{ mb: 3 }}>
-              Esta información es opcional. Puedes completarla ahora o después desde tu perfil.
-            </Alert>
-
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Proveedor de Seguro"
-              value={insuranceProvider}
-              onChange={(e) => setInsuranceProvider(e.target.value)}
-              placeholder="Ej: IMSS, ISSSTE, Seguros Monterrey"
-            />
-
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Número de Póliza"
-              value={insurancePolicyNumber}
-              onChange={(e) => setInsurancePolicyNumber(e.target.value)}
-              placeholder="Ej: 123456789"
-            />
-
-            <Card sx={{ mt: 3, bgcolor: 'success.50', borderLeft: 4, borderColor: 'success.main' }}>
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <CheckCircleIcon color="success" />
-                  <Typography variant="subtitle1" fontWeight="600">
-                    ¡Casi listo!
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary">
-                  Al finalizar, tendrás acceso completo a tu panel de paciente donde podrás:
-                </Typography>
-                <Box component="ul" sx={{ mt: 1, pl: 2 }}>
-                  <Typography component="li" variant="body2">Agendar citas médicas</Typography>
-                  <Typography component="li" variant="body2">Ver tu historial clínico</Typography>
-                  <Typography component="li" variant="body2">Actualizar tu información</Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Box>
-        );
-
       default:
         return null;
     }
@@ -358,87 +291,206 @@ const CompleteProfile = () => {
   const progress = ((activeStep + 1) / steps.length) * 100;
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        {/* Header */}
-        <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <Typography variant="h4" fontWeight="600" gutterBottom>
-            Completa tu Perfil
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Solo te tomará unos minutos
-          </Typography>
-          <Box sx={{ mt: 2 }}>
-            <LinearProgress variant="determinate" value={progress} sx={{ height: 8, borderRadius: 4 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-              {Math.round(progress)}% completado
-            </Typography>
-          </Box>
-        </Box>
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)}, ${alpha(theme.palette.secondary.main, 0.05)})`,
+        py: 6,
+      }}
+    >
+      <Container maxWidth="md">
+        <Fade in timeout={500}>
+          <Box>
+            {/* Header mejorado */}
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+              <Box
+                sx={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '20px',
+                  background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 3,
+                  boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 40, color: 'white' }} />
+              </Box>
+              <Typography variant="h3" fontWeight="700" gutterBottom sx={{
+                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}>
+                Completa tu Perfil
+              </Typography>
+              <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 500, mx: 'auto' }}>
+                Solo necesitamos algunos datos para comenzar
+              </Typography>
+            </Box>
 
-        {/* Stepper */}
-        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-          {steps.map((label, index) => (
-            <Step key={label}>
-              <StepLabel StepIconComponent={() => (
-                <Box
+            <Paper
+              elevation={0}
+              sx={{
+                p: 4,
+                borderRadius: 4,
+                border: '1px solid',
+                borderColor: 'divider',
+                background: alpha(theme.palette.background.paper, 0.8),
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              {/* Progress bar */}
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="body2" fontWeight="600" color="text.secondary">
+                    Paso {activeStep + 1} de {steps.length}
+                  </Typography>
+                  <Typography variant="body2" fontWeight="600" color="primary.main">
+                    {Math.round(progress)}%
+                  </Typography>
+                </Box>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={progress}
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 40,
-                    height: 40,
-                    borderRadius: '50%',
-                    bgcolor: activeStep >= index ? 'primary.main' : 'grey.300',
-                    color: 'white'
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 4,
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    }
+                  }}
+                />
+              </Box>
+
+              <Divider sx={{ mb: 4 }} />
+
+              {/* Stepper */}
+              <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
+                {steps.map((label, index) => (
+                  <Step key={label}>
+                    <StepLabel icon={getStepIcon(index)}>
+                      {label}
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+
+              {/* Step Content */}
+              <Box sx={{ minHeight: 300, mb: 4 }}>
+                {renderStepContent()}
+              </Box>
+
+              {/* Mostrar mensaje de éxito en el último paso */}
+              {activeStep === steps.length - 1 && (
+                <Fade in timeout={300}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 4,
+                      borderRadius: 3,
+                      background: alpha(theme.palette.success.main, 0.1),
+                      border: '2px solid',
+                      borderColor: theme.palette.success.main,
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Box
+                        sx={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 2,
+                          background: theme.palette.success.main,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <CheckCircleIcon sx={{ color: 'white', fontSize: 28 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="h6" fontWeight="600" color="success.dark">
+                          ¡Casi listo!
+                        </Typography>
+                        <Typography variant="body2" color="success.dark">
+                          Haz clic en "Finalizar" para acceder a tu panel de paciente
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Paper>
+                </Fade>
+              )}
+
+              <Divider sx={{ mb: 4 }} />
+
+              {/* Navigation Buttons */}
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Button
+                  disabled={activeStep === 0 || saving}
+                  onClick={handleBack}
+                  size="large"
+                  variant="outlined"
+                  sx={{
+                    borderRadius: 3,
+                    px: 4,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                    }
                   }}
                 >
-                  {getStepIcon(index)}
-                </Box>
-              )}>
-                {label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {/* Step Content */}
-        <Box sx={{ minHeight: 300 }}>
-          {renderStepContent()}
-        </Box>
-
-        {/* Navigation Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-          <Button
-            disabled={activeStep === 0 || saving}
-            onClick={handleBack}
-            size="large"
-          >
-            Anterior
-          </Button>
-          <Box sx={{ flex: 1 }} />
-          {activeStep === steps.length - 1 ? (
-            <Button
-              variant="contained"
-              onClick={handleFinish}
-              disabled={saving}
-              size="large"
-              startIcon={saving ? <CircularProgress size={20} /> : <CheckCircleIcon />}
-            >
-              {saving ? 'Guardando...' : 'Finalizar'}
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              onClick={handleNext}
-              size="large"
-            >
-              Siguiente
-            </Button>
-          )}
-        </Box>
-      </Paper>
-    </Container>
+                  Anterior
+                </Button>
+                {activeStep === steps.length - 1 ? (
+                  <Button
+                    variant="contained"
+                    onClick={handleFinish}
+                    disabled={saving}
+                    size="large"
+                    startIcon={saving ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                    sx={{
+                      borderRadius: 3,
+                      px: 4,
+                      py: 1.5,
+                      background: `linear-gradient(135deg, ${theme.palette.success.main}, ${theme.palette.success.dark})`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.success.main, 0.4)}`,
+                      '&:hover': {
+                        boxShadow: `0 6px 28px ${alpha(theme.palette.success.main, 0.5)}`,
+                      }
+                    }}
+                  >
+                    {saving ? 'Guardando...' : 'Finalizar'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    size="large"
+                    sx={{
+                      borderRadius: 3,
+                      px: 4,
+                      py: 1.5,
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      '&:hover': {
+                        boxShadow: `0 6px 28px ${alpha(theme.palette.primary.main, 0.5)}`,
+                      }
+                    }}
+                  >
+                    Siguiente
+                  </Button>
+                )}
+              </Box>
+            </Paper>
+          </Box>
+        </Fade>
+      </Container>
+    </Box>
   );
 };
 

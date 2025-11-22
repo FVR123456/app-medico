@@ -19,10 +19,22 @@ import {
   Step,
   StepLabel,
   IconButton,
-  Divider
+  Divider,
+  alpha,
+  useTheme,
+  InputAdornment,
+  Paper,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
+import CakeIcon from '@mui/icons-material/Cake';
+import WcIcon from '@mui/icons-material/Wc';
+import PhoneIcon from '@mui/icons-material/Phone';
+import HomeIcon from '@mui/icons-material/Home';
+import ContactEmergencyIcon from '@mui/icons-material/ContactEmergency';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import type { PatientProfile } from '../../types';
 
 interface CreatePatientDialogProps {
@@ -34,6 +46,7 @@ interface CreatePatientDialogProps {
 const steps = ['Datos Personales', 'Contacto', 'Información Adicional'];
 
 const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogProps) => {
+  const theme = useTheme();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -188,6 +201,25 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               required
               fullWidth
               autoFocus
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PersonIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
             />
 
             <TextField
@@ -198,6 +230,25 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               required
               fullWidth
               helperText="Se enviará un correo para establecer contraseña"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <EmailIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
             />
 
             <TextField
@@ -208,14 +259,53 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               InputLabelProps={{ shrink: true }}
               required
               fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <CakeIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
             />
 
-            <FormControl fullWidth required>
+            <FormControl 
+              fullWidth 
+              required
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
+            >
               <InputLabel>Género</InputLabel>
               <Select
                 value={formData.gender || ''}
                 onChange={(e) => handleChange('gender', e.target.value)}
                 label="Género"
+                startAdornment={
+                  <InputAdornment position="start">
+                    <WcIcon color="primary" />
+                  </InputAdornment>
+                }
               >
                 <MenuItem value="Masculino">Masculino</MenuItem>
                 <MenuItem value="Femenino">Femenino</MenuItem>
@@ -235,6 +325,25 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               required
               fullWidth
               placeholder="Ej: 5512345678"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <PhoneIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
             />
 
             <TextField
@@ -246,6 +355,25 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               multiline
               rows={3}
               placeholder="Calle, número, colonia, código postal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1.5 }}>
+                    <HomeIcon color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 2,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                  },
+                  '&.Mui-focused': {
+                    boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  },
+                },
+              }}
             />
           </Stack>
         );
@@ -253,16 +381,40 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
       case 2:
         return (
           <Stack spacing={3}>
-            <Box>
-              <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                Contacto de Emergencia (Opcional)
-              </Typography>
-              <Stack spacing={2} sx={{ mt: 2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                background: alpha(theme.palette.primary.main, 0.04),
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                <ContactEmergencyIcon color="primary" />
+                <Typography variant="subtitle1" fontWeight="600">
+                  Contacto de Emergencia (Opcional)
+                </Typography>
+              </Stack>
+              <Stack spacing={2}>
                 <TextField
                   label="Nombre del contacto"
                   value={formData.emergencyContact?.name || ''}
                   onChange={(e) => handleNestedChange('emergencyContact', 'name', e.target.value)}
                   fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PersonIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      background: '#fff',
+                    },
+                  }}
                 />
 
                 <TextField
@@ -270,6 +422,19 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
                   value={formData.emergencyContact?.phone || ''}
                   onChange={(e) => handleNestedChange('emergencyContact', 'phone', e.target.value)}
                   fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <PhoneIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      background: '#fff',
+                    },
+                  }}
                 />
 
                 <TextField
@@ -278,23 +443,44 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
                   onChange={(e) => handleNestedChange('emergencyContact', 'relationship', e.target.value)}
                   fullWidth
                   placeholder="Ej: Esposo/a, Hijo/a, Hermano/a"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      background: '#fff',
+                    },
+                  }}
                 />
               </Stack>
-            </Box>
+            </Paper>
 
-            <Divider />
-
-            <Box>
-              <Typography variant="subtitle2" fontWeight="600" gutterBottom>
-                Seguro Médico (Opcional)
-              </Typography>
-              <Stack spacing={2} sx={{ mt: 2 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                background: alpha(theme.palette.success.main, 0.04),
+                border: `1px solid ${alpha(theme.palette.success.main, 0.1)}`,
+              }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                <LocalHospitalIcon color="success" />
+                <Typography variant="subtitle1" fontWeight="600">
+                  Seguro Médico (Opcional)
+                </Typography>
+              </Stack>
+              <Stack spacing={2}>
                 <TextField
                   label="Aseguradora"
                   value={formData.insurance?.provider || ''}
                   onChange={(e) => handleNestedChange('insurance', 'provider', e.target.value)}
                   fullWidth
                   placeholder="Ej: IMSS, ISSSTE, Seguro privado"
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      background: '#fff',
+                    },
+                  }}
                 />
 
                 <TextField
@@ -302,9 +488,15 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
                   value={formData.insurance?.policyNumber || ''}
                   onChange={(e) => handleNestedChange('insurance', 'policyNumber', e.target.value)}
                   fullWidth
+                  sx={{
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: 2,
+                      background: '#fff',
+                    },
+                  }}
                 />
               </Stack>
-            </Box>
+            </Paper>
           </Stack>
         );
 
@@ -314,15 +506,44 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-      <DialogTitle>
+    <Dialog 
+      open={open} 
+      onClose={handleClose} 
+      maxWidth="md" 
+      fullWidth
+      PaperProps={{
+        sx: {
+          borderRadius: 3,
+          boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.15)}`,
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          background: alpha(theme.palette.primary.main, 0.04),
+          borderBottom: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+        }}
+      >
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <PersonAddIcon color="primary" />
-            <Typography variant="h6" fontWeight="600">
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: 2,
+                background: theme.palette.primary.main,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+              }}
+            >
+              <PersonAddIcon sx={{ color: '#fff', fontSize: 22 }} />
+            </Box>
+            <Typography variant="h6" fontWeight="700">
               Crear Nuevo Paciente
             </Typography>
-          </Box>
+          </Stack>
           <IconButton onClick={handleClose} size="small" disabled={loading}>
             <CloseIcon />
           </IconButton>
@@ -358,17 +579,52 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
       </DialogContent>
 
       {!success && (
-        <DialogActions sx={{ px: 3, pb: 3 }}>
-          <Button onClick={handleClose} disabled={loading}>
+        <DialogActions 
+          sx={{ 
+            px: 3, 
+            pb: 3,
+            pt: 2,
+            background: alpha(theme.palette.primary.main, 0.02),
+            borderTop: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          }}
+        >
+          <Button 
+            onClick={handleClose} 
+            disabled={loading}
+            sx={{
+              borderRadius: 2,
+              fontWeight: 600,
+            }}
+          >
             Cancelar
           </Button>
           {activeStep > 0 && (
-            <Button onClick={handleBack} disabled={loading}>
+            <Button 
+              onClick={handleBack} 
+              disabled={loading}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 600,
+              }}
+            >
               Atrás
             </Button>
           )}
           {activeStep < steps.length - 1 ? (
-            <Button variant="contained" onClick={handleNext} disabled={loading}>
+            <Button 
+              variant="contained" 
+              onClick={handleNext} 
+              disabled={loading}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 600,
+                px: 3,
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                '&:hover': {
+                  boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                },
+              }}
+            >
               Siguiente
             </Button>
           ) : (
@@ -376,7 +632,16 @@ const CreatePatientDialog = ({ open, onClose, onSuccess }: CreatePatientDialogPr
               variant="contained"
               onClick={handleSubmit}
               disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <PersonAddIcon />}
+              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PersonAddIcon />}
+              sx={{
+                borderRadius: 2,
+                fontWeight: 600,
+                px: 3,
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                '&:hover': {
+                  boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                },
+              }}
             >
               {loading ? 'Creando...' : 'Crear Paciente'}
             </Button>

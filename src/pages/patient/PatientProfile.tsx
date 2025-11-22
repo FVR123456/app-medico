@@ -22,13 +22,19 @@ import {
   Divider,
   Card,
   CardContent,
-  Stack
+  Stack,
+  Fade,
+  alpha,
+  useTheme
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import SaveIcon from '@mui/icons-material/Save';
 import ContactEmergencyIcon from '@mui/icons-material/ContactEmergency';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 
 const PatientProfile = () => {
+  const theme = useTheme();
   const { user } = useAuth();
   const { showError, showSuccess } = useNotification();
   const navigate = useNavigate();
@@ -48,10 +54,6 @@ const PatientProfile = () => {
   const [emergencyPhone, setEmergencyPhone] = useState('');
   const [emergencyRelationship, setEmergencyRelationship] = useState('');
 
-  // Seguro médico
-  const [insuranceProvider, setInsuranceProvider] = useState('');
-  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
-
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
@@ -68,11 +70,6 @@ const PatientProfile = () => {
             setEmergencyName(profile.emergencyContact.name || '');
             setEmergencyPhone(profile.emergencyContact.phone || '');
             setEmergencyRelationship(profile.emergencyContact.relationship || '');
-          }
-          
-          if (profile.insurance) {
-            setInsuranceProvider(profile.insurance.provider || '');
-            setInsurancePolicyNumber(profile.insurance.policyNumber || '');
           }
         }
       } catch (error) {
@@ -126,14 +123,6 @@ const PatientProfile = () => {
         }
       };
 
-      // Solo agregar seguro si se proporcionó
-      if (insuranceProvider && insurancePolicyNumber) {
-        profileData.insurance = {
-          provider: insuranceProvider,
-          policyNumber: insurancePolicyNumber
-        };
-      }
-
       await updatePatientProfile(user.uid, profileData);
 
       showSuccess('Perfil actualizado exitosamente');
@@ -168,183 +157,271 @@ const PatientProfile = () => {
 
   return (
     <Layout title="Mi Perfil">
-      <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: { xs: 3, md: 4 } }}>
-          <Box sx={{ mb: 4 }}>
-            <Typography variant="h4" fontWeight="600" gutterBottom>
-              Mi Perfil
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Mantén tu información actualizada
-            </Typography>
-          </Box>
+      <Box 
+        sx={{ 
+          minHeight: '100vh',
+          pb: 6
+        }}
+      >
+        <Container maxWidth="lg">
+          <Fade in timeout={500}>
+            <Box sx={{ py: 4 }}>
+              {/* Botón de regreso */}
+              <Box sx={{ mb: 3 }}>
+                <Button
+                  onClick={() => navigate('/patient-dashboard')}
+                  startIcon={<ArrowBackIcon />}
+                  variant="outlined"
+                  sx={{ 
+                    borderRadius: 2,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                    }
+                  }}
+                >
+                  Volver al Dashboard
+                </Button>
+              </Box>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            {/* Información Personal */}
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Stack spacing={2}>
-                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <PersonIcon color="primary" />
-                    Información Personal
+              {/* Header mejorado con glassmorphism */}
+              <Box sx={{ mb: 4 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.secondary.main, 0.08)})`,
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.1),
+                    borderRadius: 4,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    }
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '20px',
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                      boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    }}
+                  >
+                    <AccountCircleIcon sx={{ fontSize: 40, color: 'white' }} />
+                  </Box>
+                  <Typography variant="h4" fontWeight="700" gutterBottom sx={{ 
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 1
+                  }}>
+                    Mi Perfil
                   </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 600, mx: 'auto' }}>
+                    Mantén tu información actualizada para una mejor atención médica
+                  </Typography>
+                </Paper>
+              </Box>
 
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Teléfono"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        error={!!errors.phone}
-                        helperText={errors.phone}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">+52</InputAdornment>
+              {/* Contenedor del formulario */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 3, md: 4 },
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  background: alpha(theme.palette.background.paper, 0.6),
+                }}
+              >
+                <Box component="form" onSubmit={handleSubmit}>
+                  {/* Información Personal */}
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h5" fontWeight="700" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                         }}
                       />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Fecha de Nacimiento"
-                        type="date"
-                        value={birthDate}
-                        onChange={(e) => setBirthDate(e.target.value)}
-                        error={!!errors.birthDate}
-                        helperText={errors.birthDate}
-                        InputLabelProps={{ shrink: true }}
-                        inputProps={{ max: new Date().toISOString().split('T')[0] }}
-                      />
-                    </Grid>
-                  </Grid>
+                      Información Personal
+                    </Typography>
 
-                  <FormControl fullWidth>
-                    <InputLabel>Género</InputLabel>
-                    <Select
-                      value={gender}
-                      label="Género"
-                      onChange={(e) => setGender(e.target.value as 'Masculino' | 'Femenino' | 'Otro')}
+                    <Grid container spacing={3}>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          required
+                          label="Teléfono"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          error={!!errors.phone}
+                          helperText={errors.phone}
+                          InputProps={{
+                            startAdornment: <InputAdornment position="start">+52</InputAdornment>
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          required
+                          label="Fecha de Nacimiento"
+                          type="date"
+                          value={birthDate}
+                          onChange={(e) => setBirthDate(e.target.value)}
+                          error={!!errors.birthDate}
+                          helperText={errors.birthDate}
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{ max: new Date().toISOString().split('T')[0] }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <FormControl fullWidth>
+                          <InputLabel>Género</InputLabel>
+                          <Select
+                            value={gender}
+                            label="Género"
+                            onChange={(e) => setGender(e.target.value as 'Masculino' | 'Femenino' | 'Otro')}
+                          >
+                            <MenuItem value="Masculino">Masculino</MenuItem>
+                            <MenuItem value="Femenino">Femenino</MenuItem>
+                            <MenuItem value="Otro">Otro</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Dirección"
+                          value={address}
+                          onChange={(e) => setAddress(e.target.value)}
+                          placeholder="Calle, colonia, ciudad (opcional)"
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Contacto de Emergencia */}
+                  <Box sx={{ mb: 4 }}>
+                    <Typography variant="h5" fontWeight="700" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                      <Box
+                        sx={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                        }}
+                      />
+                      Contacto de Emergencia
+                    </Typography>
+
+                    <Grid container spacing={3}>
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          required
+                          label="Nombre Completo"
+                          value={emergencyName}
+                          onChange={(e) => setEmergencyName(e.target.value)}
+                          error={!!errors.emergencyName}
+                          helperText={errors.emergencyName}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          required
+                          label="Teléfono"
+                          value={emergencyPhone}
+                          onChange={(e) => setEmergencyPhone(e.target.value)}
+                          error={!!errors.emergencyPhone}
+                          helperText={errors.emergencyPhone}
+                          InputProps={{
+                            startAdornment: <InputAdornment position="start">+52</InputAdornment>
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          required
+                          label="Relación"
+                          value={emergencyRelationship}
+                          onChange={(e) => setEmergencyRelationship(e.target.value)}
+                          error={!!errors.emergencyRelationship}
+                          helperText={errors.emergencyRelationship}
+                          placeholder="Ej: Esposo/a, Padre, Madre"
+                        />
+                      </Grid>
+                    </Grid>
+                  </Box>
+
+                  <Divider sx={{ my: 4 }} />
+
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => navigate('/patient-dashboard')}
+                      disabled={loading}
+                      size="large"
+                      sx={{ 
+                        borderRadius: 3,
+                        px: 4,
+                        borderWidth: 2,
+                        '&:hover': {
+                          borderWidth: 2,
+                        }
+                      }}
                     >
-                      <MenuItem value="Masculino">Masculino</MenuItem>
-                      <MenuItem value="Femenino">Femenino</MenuItem>
-                      <MenuItem value="Otro">Otro</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <TextField
-                    fullWidth
-                    label="Dirección"
-                    multiline
-                    rows={2}
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Calle, colonia, ciudad (opcional)"
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Contacto de Emergencia */}
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Stack spacing={2}>
-                  <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <ContactEmergencyIcon color="primary" />
-                    Contacto de Emergencia
-                  </Typography>
-
-                  <TextField
-                    fullWidth
-                    required
-                    label="Nombre Completo"
-                    value={emergencyName}
-                    onChange={(e) => setEmergencyName(e.target.value)}
-                    error={!!errors.emergencyName}
-                    helperText={errors.emergencyName}
-                  />
-
-                  <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Teléfono"
-                        value={emergencyPhone}
-                        onChange={(e) => setEmergencyPhone(e.target.value)}
-                        error={!!errors.emergencyPhone}
-                        helperText={errors.emergencyPhone}
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">+52</InputAdornment>
-                        }}
-                      />
-                    </Grid>
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <TextField
-                        fullWidth
-                        required
-                        label="Relación"
-                        value={emergencyRelationship}
-                        onChange={(e) => setEmergencyRelationship(e.target.value)}
-                        error={!!errors.emergencyRelationship}
-                        helperText={errors.emergencyRelationship}
-                        placeholder="Ej: Esposo/a, Padre, Madre"
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            {/* Seguro Médico */}
-            <Card variant="outlined" sx={{ mb: 3 }}>
-              <CardContent>
-                <Stack spacing={2}>
-                  <Typography variant="h6" gutterBottom>
-                    Seguro Médico (Opcional)
-                  </Typography>
-
-                  <TextField
-                    fullWidth
-                    label="Aseguradora"
-                    value={insuranceProvider}
-                    onChange={(e) => setInsuranceProvider(e.target.value)}
-                    placeholder="Ej: IMSS, ISSSTE, Seguros Monterrey"
-                  />
-
-                  <TextField
-                    fullWidth
-                    label="Número de Póliza"
-                    value={insurancePolicyNumber}
-                    onChange={(e) => setInsurancePolicyNumber(e.target.value)}
-                  />
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Divider sx={{ my: 3 }} />
-
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-              <Button
-                variant="outlined"
-                onClick={() => navigate('/patient-dashboard')}
-                disabled={loading}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
-              >
-                {loading ? 'Guardando...' : 'Guardar Cambios'}
-              </Button>
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      disabled={loading}
+                      startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+                      size="large"
+                      sx={{
+                        borderRadius: 3,
+                        px: 4,
+                        py: 1.5,
+                        background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                        boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                        '&:hover': {
+                          boxShadow: `0 6px 28px ${alpha(theme.palette.primary.main, 0.5)}`,
+                        }
+                      }}
+                    >
+                      {loading ? 'Guardando...' : 'Guardar Cambios'}
+                    </Button>
+                  </Box>
+                </Box>
+              </Paper>
             </Box>
-          </Box>
-        </Paper>
-      </Container>
+          </Fade>
+        </Container>
+      </Box>
     </Layout>
   );
 };

@@ -53,7 +53,7 @@ export const IdentificationSection = memo(({ data, onChange, readOnly = false }:
               label="Ocupación"
               value={data.occupation}
               onChange={(e) => onChange('occupation', e.target.value)}
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -63,8 +63,7 @@ export const IdentificationSection = memo(({ data, onChange, readOnly = false }:
               label="Estado Civil"
               value={data.maritalStatus}
               onChange={(e) => onChange('maritalStatus', e.target.value)}
-              InputProps={{ readOnly }}
-              SelectProps={{ disabled: readOnly }}
+              disabled={readOnly}
             >
               <MenuItem value="">Seleccionar</MenuItem>
               <MenuItem value="Soltero">Soltero</MenuItem>
@@ -81,8 +80,7 @@ export const IdentificationSection = memo(({ data, onChange, readOnly = false }:
               label="Escolaridad"
               value={data.education}
               onChange={(e) => onChange('education', e.target.value)}
-              InputProps={{ readOnly }}
-              SelectProps={{ disabled: readOnly }}
+              disabled={readOnly}
             >
               <MenuItem value="">Seleccionar</MenuItem>
               <MenuItem value="Sin estudios">Sin estudios</MenuItem>
@@ -99,7 +97,7 @@ export const IdentificationSection = memo(({ data, onChange, readOnly = false }:
               label="Lugar de Nacimiento"
               value={data.placeOfBirth}
               onChange={(e) => onChange('placeOfBirth', e.target.value)}
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
@@ -108,7 +106,7 @@ export const IdentificationSection = memo(({ data, onChange, readOnly = false }:
               label="Residencia Actual"
               value={data.currentResidence}
               onChange={(e) => onChange('currentResidence', e.target.value)}
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
         </Grid>

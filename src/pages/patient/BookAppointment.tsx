@@ -16,7 +16,12 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  IconButton
+  IconButton,
+  Container,
+  Paper,
+  alpha,
+  useTheme,
+  Divider
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -34,8 +39,11 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import EventNoteIcon from '@mui/icons-material/EventNote';
 
 const BookAppointment = () => {
+  const theme = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
@@ -43,7 +51,7 @@ const BookAppointment = () => {
   // Estados principales
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [, setLoadingProfile] = useState(true);
   const [showAddFamilyDialog, setShowAddFamilyDialog] = useState(false);
   const [showFormDialog, setShowFormDialog] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -142,122 +150,308 @@ const BookAppointment = () => {
 
   return (
     <Layout title="Gestión de Citas">
-      <Fade in timeout={500}>
-        <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-            <Button
-              onClick={() => navigate('/patient-dashboard')}
-              startIcon={<ArrowBackIcon />}
-            >
-              Volver al Dashboard
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<PersonAddIcon />}
-              onClick={() => setShowAddFamilyDialog(true)}
-            >
-              Agregar Familiar
-            </Button>
-          </Stack>
+      <Box 
+        sx={{ 
+          minHeight: '100vh',
+          pb: 6
+        }}
+      >
+        <Container maxWidth="lg">
+          <Fade in timeout={500}>
+            <Box sx={{ py: 4 }}>
+              {/* Botón de regreso */}
+              <Box sx={{ mb: 3 }}>
+                <Button
+                  onClick={() => navigate('/patient-dashboard')}
+                  startIcon={<ArrowBackIcon />}
+                  variant="outlined"
+                  sx={{ 
+                    borderRadius: 2,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                    }
+                  }}
+                >
+                  Volver al Dashboard
+                </Button>
+              </Box>
 
-          <Card sx={{ maxWidth: 1200, mx: 'auto' }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-              <Tabs value={tabValue} onChange={(_, newValue) => setTabValue(newValue)}>
-                <Tab label="Mis Citas" />
-                <Tab label="Nueva Cita" />
-              </Tabs>
-            </Box>
+              {/* Header mejorado con glassmorphism */}
+              <Box sx={{ mb: 4 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.secondary.main, 0.08)})`,
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid',
+                    borderColor: alpha(theme.palette.primary.main, 0.1),
+                    borderRadius: 4,
+                    position: 'relative',
+                    overflow: 'hidden',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '4px',
+                      background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    }
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: '20px',
+                      background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      mx: 'auto',
+                      mb: 2,
+                      boxShadow: `0 8px 32px ${alpha(theme.palette.primary.main, 0.3)}`,
+                    }}
+                  >
+                    <CalendarMonthIcon sx={{ fontSize: 40, color: 'white' }} />
+                  </Box>
+                  <Typography variant="h4" fontWeight="700" gutterBottom sx={{ 
+                    background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    mb: 1
+                  }}>
+                    Gestión de Citas Médicas
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 600, mx: 'auto' }}>
+                    Agenda, edita y gestiona todas tus citas médicas en un solo lugar
+                  </Typography>
+                  
+                  <Button
+                    variant="outlined"
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => setShowAddFamilyDialog(true)}
+                    size="large"
+                    sx={{
+                      borderRadius: 3,
+                      px: 4,
+                      py: 1.5,
+                      borderWidth: 2,
+                      '&:hover': {
+                        borderWidth: 2,
+                      }
+                    }}
+                  >
+                    Agregar Familiar
+                  </Button>
+                </Paper>
+              </Box>
 
-            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
-              {/* Pestaña de Mis Citas */}
-              {tabValue === 0 && (
-                <Box>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-                    <Typography variant="h6" fontWeight="600">
-                      Tus Citas Médicas
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      startIcon={<AddIcon />}
-                      onClick={handleNewAppointment}
-                    >
-                      Nueva Cita
-                    </Button>
-                  </Stack>
+              {/* Contenedor principal de citas */}
+              <Paper
+                elevation={0}
+                sx={{
+                  borderRadius: 3,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  background: alpha(theme.palette.background.paper, 0.6),
+                  overflow: 'hidden',
+                }}
+              >
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', background: alpha(theme.palette.primary.main, 0.02) }}>
+                  <Tabs 
+                    value={tabValue} 
+                    onChange={(_, newValue) => setTabValue(newValue)}
+                    sx={{
+                      px: 2,
+                      '& .MuiTab-root': {
+                        fontSize: '1rem',
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        minHeight: 64,
+                      }
+                    }}
+                  >
+                    <Tab 
+                      icon={<EventNoteIcon />} 
+                      iconPosition="start" 
+                      label="Mis Citas" 
+                    />
+                    <Tab 
+                      icon={<AddIcon />} 
+                      iconPosition="start" 
+                      label="Nueva Cita" 
+                    />
+                  </Tabs>
+                </Box>
 
-                  {success && (
-                    <Box sx={{ mb: 3 }}>
-                      <Card sx={{ bgcolor: 'success.lighter', border: 1, borderColor: 'success.main' }}>
-                        <CardContent>
-                          <Stack direction="row" alignItems="center" spacing={2}>
-                            <CheckCircleOutlineIcon color="success" />
-                            <Typography>
-                              Operación completada exitosamente
-                            </Typography>
-                          </Stack>
-                        </CardContent>
-                      </Card>
+                <CardContent sx={{ p: { xs: 3, md: 4 } }}>
+                  {/* Pestaña de Mis Citas */}
+                  {tabValue === 0 && (
+                    <Box>
+                      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+                        <Box>
+                          <Typography variant="h5" fontWeight="700" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                              }}
+                            />
+                            Tus Citas Médicas
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Gestiona y visualiza todas tus citas programadas
+                          </Typography>
+                        </Box>
+                        <Button
+                          variant="contained"
+                          startIcon={<AddIcon />}
+                          onClick={handleNewAppointment}
+                          size="large"
+                          sx={{
+                            borderRadius: 3,
+                            px: 4,
+                            py: 1.5,
+                            background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            boxShadow: `0 4px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                            '&:hover': {
+                              boxShadow: `0 6px 28px ${alpha(theme.palette.primary.main, 0.5)}`,
+                            }
+                          }}
+                        >
+                          Nueva Cita
+                        </Button>
+                      </Stack>
+
+                      {success && (
+                        <Fade in timeout={300}>
+                          <Paper
+                            elevation={0}
+                            sx={{ 
+                              mb: 3,
+                              p: 3,
+                              borderRadius: 3,
+                              background: `linear-gradient(135deg, ${alpha(theme.palette.success.main, 0.1)}, ${alpha(theme.palette.success.light, 0.05)})`,
+                              border: '2px solid',
+                              borderColor: theme.palette.success.main,
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" spacing={2}>
+                              <Box
+                                sx={{
+                                  width: 48,
+                                  height: 48,
+                                  borderRadius: 2,
+                                  background: theme.palette.success.main,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <CheckCircleOutlineIcon sx={{ color: 'white', fontSize: 28 }} />
+                              </Box>
+                              <Box>
+                                <Typography variant="h6" fontWeight="600" color="success.dark">
+                                  ¡Operación Exitosa!
+                                </Typography>
+                                <Typography variant="body2" color="success.dark">
+                                  La cita se ha procesado correctamente
+                                </Typography>
+                              </Box>
+                            </Stack>
+                          </Paper>
+                        </Fade>
+                      )}
+
+                      <AppointmentList
+                        appointments={appointments}
+                        onEdit={handleEdit}
+                        onCancel={handleCancel}
+                      />
                     </Box>
                   )}
 
-                  <AppointmentList
-                    appointments={appointments}
-                    onEdit={handleEdit}
-                    onCancel={handleCancel}
-                  />
-                </Box>
-              )}
+                  {/* Pestaña de Nueva Cita */}
+                  {tabValue === 1 && (
+                    <Box>
+                      <Box sx={{ mb: 4 }}>
+                        <Typography variant="h5" fontWeight="700" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box
+                            sx={{
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                            }}
+                          />
+                          Agendar Nueva Cita
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Completa el formulario para solicitar tu cita médica
+                        </Typography>
+                      </Box>
 
-              {/* Pestaña de Nueva Cita */}
-              {tabValue === 1 && (
-                <Box>
-                  <Typography variant="h6" fontWeight="600" gutterBottom sx={{ mb: 3 }}>
-                    Agendar Nueva Cita
-                  </Typography>
+                      <Divider sx={{ mb: 4 }} />
 
-                  {user && (
-                    <AppointmentForm
-                      userId={user.uid}
-                      userName={user.displayName || 'Usuario'}
-                      familyMembers={familyMembers}
-                      onSuccess={handleFormSuccess}
-                      onCancel={() => setTabValue(0)}
-                    />
+                      {user && (
+                        <AppointmentForm
+                          userId={user.uid}
+                          userName={user.displayName || 'Usuario'}
+                          familyMembers={familyMembers}
+                          onSuccess={handleFormSuccess}
+                          onCancel={() => setTabValue(0)}
+                        />
+                      )}
+                    </Box>
                   )}
-                </Box>
-              )}
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Paper>
 
-          {/* Dialog para formulario de cita (cuando se edita desde la lista) */}
-          <Dialog
+              {/* Dialog para formulario de cita (cuando se edita desde la lista) */}
+              <Dialog
             open={showFormDialog}
             onClose={handleCloseFormDialog}
             maxWidth="sm"
             fullWidth
+            PaperProps={{
+              sx: {
+                borderRadius: 3,
+              }
+            }}
           >
-            <DialogTitle>
+            <DialogTitle sx={{ 
+              pb: 1,
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)}, ${alpha(theme.palette.secondary.main, 0.05)})`,
+            }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" fontWeight="600">
-                  {editingAppointment ? 'Editar Cita' : 'Nueva Cita'}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <EventNoteIcon color="primary" />
+                  <Typography variant="h6" fontWeight="600">
+                    {editingAppointment ? 'Editar Cita' : 'Nueva Cita'}
+                  </Typography>
+                </Box>
                 <IconButton onClick={handleCloseFormDialog} size="small">
                   <CloseIcon />
                 </IconButton>
               </Stack>
             </DialogTitle>
-            <DialogContent>
+            <Divider />
+            <DialogContent sx={{ pt: 3 }}>
               {user && (
-                <Box sx={{ pt: 1 }}>
-                  <AppointmentForm
-                    userId={user.uid}
-                    userName={user.displayName || 'Usuario'}
-                    familyMembers={familyMembers}
-                    editingAppointment={editingAppointment}
-                    onSuccess={handleFormSuccess}
-                    onCancel={handleCloseFormDialog}
-                  />
-                </Box>
+                <AppointmentForm
+                  userId={user.uid}
+                  userName={user.displayName || 'Usuario'}
+                  familyMembers={familyMembers}
+                  editingAppointment={editingAppointment}
+                  onSuccess={handleFormSuccess}
+                  onCancel={handleCloseFormDialog}
+                />
               )}
             </DialogContent>
           </Dialog>
@@ -268,8 +462,10 @@ const BookAppointment = () => {
             onClose={() => setShowAddFamilyDialog(false)}
             onAdd={handleAddFamilyMember}
           />
-        </Box>
-      </Fade>
+            </Box>
+          </Fade>
+        </Container>
+      </Box>
     </Layout>
   );
 };

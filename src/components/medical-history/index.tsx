@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Box, Button, Paper, Typography, Divider, Chip, Alert, Stack } from '@mui/material';
+import { Box, Button, Paper, Typography, Divider, Chip, Alert, Stack, alpha, useTheme } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -32,6 +32,7 @@ export const MedicalHistoryForm = ({
   onSave,
   onCancel,
 }: MedicalHistoryFormProps) => {
+  const theme = useTheme();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(!existingHistory); // Modo edición solo si es nueva
@@ -43,6 +44,7 @@ export const MedicalHistoryForm = ({
     addToArray,
     removeFromArray,
     updateArrayItem,
+    resetForm,
   } = useMedicalHistoryForm(patientId, patientGender, existingHistory);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,8 +70,12 @@ export const MedicalHistoryForm = ({
   };
 
   const handleCancelEdit = () => {
-    setIsEditMode(false);
-    if (onCancel) {
+    // Si hay historia existente, recargar los datos originales
+    if (existingHistory) {
+      resetForm(existingHistory);
+      setIsEditMode(false);
+    } else if (onCancel) {
+      // Si es nueva y no hay historia, cerrar
       onCancel();
     }
   };
@@ -79,24 +85,38 @@ export const MedicalHistoryForm = ({
   return (
     <Box component="form" onSubmit={handleSubmit}>
       <Paper 
-        elevation={2} 
+        elevation={0}
         sx={{ 
-          p: { xs: 2, md: 4 }, 
+          p: { xs: 3, md: 4 }, 
           mb: 3,
-          borderRadius: 2,
-          border: '1px solid',
-          borderColor: 'divider'
+          borderRadius: 3,
+          border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+          background: alpha('#fff', 0.9),
+          boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.08)}`,
         }}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Stack spacing={0.5}>
             <Stack direction="row" spacing={1.5} alignItems="center">
-              <AssignmentIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-              <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              <Box
+                sx={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 2,
+                  background: theme.palette.primary.main,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }}
+              >
+                <AssignmentIcon sx={{ fontSize: 28, color: '#fff' }} />
+              </Box>
+              <Typography variant="h5" sx={{ fontWeight: 700 }}>
                 Historia Clínica Completa
               </Typography>
             </Stack>
-            <Typography variant="body2" color="text.secondary" sx={{ ml: 5.5 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ ml: 7.5 }}>
               Paciente: <strong>{patientName}</strong>
             </Typography>
           </Stack>
@@ -104,26 +124,47 @@ export const MedicalHistoryForm = ({
             <Chip
               icon={<LockIcon />}
               label="Solo Lectura"
-              color="info"
-              variant="outlined"
-              sx={{ fontWeight: 500 }}
+              sx={{ 
+                fontWeight: 600,
+                bgcolor: alpha(theme.palette.info.main, 0.1),
+                color: 'info.main',
+                borderRadius: 2,
+                px: 1,
+              }}
             />
           )}
         </Box>
         
         {isReadOnly && (
-          <Alert 
-            severity="info" 
+          <Paper
+            elevation={0}
             sx={{ 
               mb: 3,
+              p: 2.5,
               borderRadius: 2,
-              '& .MuiAlert-icon': {
-                fontSize: 24
-              }
+              background: alpha(theme.palette.info.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
             }}
           >
-            La historia clínica está protegida. Presiona <strong>"Editar"</strong> para realizar modificaciones.
-          </Alert>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 2,
+                  background: theme.palette.info.main,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <LockIcon sx={{ color: '#fff', fontSize: 20 }} />
+              </Box>
+              <Typography variant="body2" sx={{ color: 'info.dark' }}>
+                La historia clínica está protegida. Presiona <strong>"Editar"</strong> para realizar modificaciones.
+              </Typography>
+            </Stack>
+          </Paper>
         )}
         
         <Divider sx={{ mb: 3 }} />
@@ -200,8 +241,7 @@ export const MedicalHistoryForm = ({
           sx={{ 
             mt: 4, 
             pt: 3,
-            borderTop: '1px solid',
-            borderColor: 'divider',
+            borderTop: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
             display: 'flex', 
             gap: 2, 
             justifyContent: 'flex-end',
@@ -215,7 +255,15 @@ export const MedicalHistoryForm = ({
                   variant="outlined" 
                   onClick={onCancel}
                   size="large"
-                  sx={{ minWidth: 120 }}
+                  sx={{ 
+                    minWidth: 120,
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    borderWidth: 2,
+                    '&:hover': {
+                      borderWidth: 2,
+                    },
+                  }}
                 >
                   Cerrar
                 </Button>
@@ -224,9 +272,17 @@ export const MedicalHistoryForm = ({
                 variant="contained"
                 startIcon={<EditIcon />}
                 onClick={handleEdit}
-                color="primary"
                 size="large"
-                sx={{ minWidth: 180 }}
+                sx={{ 
+                  minWidth: 180,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  px: 3,
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                  '&:hover': {
+                    boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  },
+                }}
               >
                 Editar Historia
               </Button>
@@ -239,7 +295,15 @@ export const MedicalHistoryForm = ({
                 disabled={loading}
                 startIcon={<CancelIcon />}
                 size="large"
-                sx={{ minWidth: 120 }}
+                sx={{ 
+                  minWidth: 120,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                  },
+                }}
               >
                 {existingHistory ? 'Cancelar' : 'Cerrar'}
               </Button>
@@ -249,7 +313,16 @@ export const MedicalHistoryForm = ({
                 startIcon={<SaveIcon />}
                 disabled={loading}
                 size="large"
-                sx={{ minWidth: 180 }}
+                sx={{ 
+                  minWidth: 180,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  px: 3,
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                  '&:hover': {
+                    boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  },
+                }}
               >
                 {loading ? 'Guardando...' : 'Guardar'}
               </Button>

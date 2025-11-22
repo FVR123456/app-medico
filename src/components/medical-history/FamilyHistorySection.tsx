@@ -127,7 +127,7 @@ export const FamilyHistorySection = memo(({ data, onChange, readOnly = false }: 
               value={data.other}
               onChange={(e) => onChange('other', e.target.value)}
               placeholder="Especifique otros antecedentes relevantes..."
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
         </Grid>

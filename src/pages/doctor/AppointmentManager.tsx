@@ -7,7 +7,6 @@ import {
   Typography, 
   Card, 
   CardContent, 
-  Button, 
   Chip, 
   Box, 
   Grid, 
@@ -18,7 +17,10 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  IconButton
+  IconButton,
+  Paper,
+  useTheme,
+  alpha
 } from '@mui/material';
 import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/context/NotificationContext';
@@ -39,6 +41,7 @@ import { logger } from '@/services/logger';
 const AppointmentManager = () => {
   const { user } = useAuth();
   const { showSuccess, showError } = useNotification();
+  const theme = useTheme();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -143,20 +146,6 @@ const AppointmentManager = () => {
     setEditingAppointment(null);
   };
 
-  const getStatusColor = (
-    status: string
-  ): OverridableStringUnion<
-    "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning",
-    ChipPropsColorOverrides
-  > => {
-    switch (status) {
-      case 'accepted': return 'success';
-      case 'rejected': return 'error';
-      case 'cancelled': return 'default';
-      default: return 'warning';
-    }
-  };
-
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'accepted': return 'Aceptada';
@@ -184,98 +173,279 @@ const AppointmentManager = () => {
     <Layout title="Gestión de Citas">
       <Fade in timeout={500}>
         <Box>
+          {/* Header */}
+          <Paper 
+            elevation={0}
+            sx={{ 
+              p: 3, 
+              mb: 4,
+              background: alpha(theme.palette.primary.main, 0.08),
+              borderRadius: 3,
+              border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 2,
+                  background: theme.palette.primary.main,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }}
+              >
+                <EventNoteIcon sx={{ fontSize: 28 }} />
+              </Box>
+              <Box>
+                <Typography variant="h4" fontWeight={700} gutterBottom>
+                  Gestión de Citas
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Administra las citas médicas de tus pacientes
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+
           {/* Stats */}
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: 'white',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
-                <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                  <PendingIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h4" fontWeight="bold">{pendingCount}</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Pendientes</Typography>
-                  {weekendPendingCount > 0 && (
-                    <Chip
-                      size="small"
-                      label={`${weekendPendingCount} fin de semana`}
-                      sx={{ mt: 1, bgcolor: 'rgba(255,255,255,0.2)' }}
-                    />
-                  )}
-                </CardContent>
-              </Card>
+              <Paper 
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `2px solid ${alpha('#f59e0b', 0.2)}`,
+                  background: alpha('#f59e0b', 0.08),
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 24px ${alpha('#f59e0b', 0.2)}`,
+                  }
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                    }}
+                  >
+                    <PendingIcon sx={{ fontSize: 28 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="h4" fontWeight={700} color="#f59e0b">
+                      {pendingCount}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      Pendientes
+                    </Typography>
+                    {weekendPendingCount > 0 && (
+                      <Chip
+                        size="small"
+                        label={`${weekendPendingCount} fin de semana`}
+                        sx={{ 
+                          mt: 0.5, 
+                          bgcolor: alpha('#f59e0b', 0.2),
+                          color: '#f59e0b',
+                          fontWeight: 600,
+                          fontSize: '0.7rem'
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Stack>
+              </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: 'white',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
-                <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                  <CheckCircleIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h4" fontWeight="bold">{acceptedCount}</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Aceptadas</Typography>
-                </CardContent>
-              </Card>
+              <Paper 
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `2px solid ${alpha('#10b981', 0.2)}`,
+                  background: alpha('#10b981', 0.08),
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 24px ${alpha('#10b981', 0.2)}`,
+                  }
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                    }}
+                  >
+                    <CheckCircleIcon sx={{ fontSize: 28 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="h4" fontWeight={700} color="#10b981">
+                      {acceptedCount}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      Aceptadas
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                color: 'white',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
-                <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                  <CancelIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h4" fontWeight="bold">{rejectedCount}</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Rechazadas</Typography>
-                </CardContent>
-              </Card>
+              <Paper 
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `2px solid ${alpha('#ef4444', 0.2)}`,
+                  background: alpha('#ef4444', 0.08),
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 24px ${alpha('#ef4444', 0.2)}`,
+                  }
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: '#ef4444',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                    }}
+                  >
+                    <CancelIcon sx={{ fontSize: 28 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="h4" fontWeight={700} color="#ef4444">
+                      {rejectedCount}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      Rechazadas
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                color: 'white',
-                transition: 'transform 0.2s',
-                '&:hover': { transform: 'translateY(-4px)' }
-              }}>
-                <CardContent sx={{ textAlign: 'center', py: 3 }}>
-                  <EventNoteIcon sx={{ fontSize: 40, mb: 1 }} />
-                  <Typography variant="h4" fontWeight="bold">{appointments.length}</Typography>
-                  <Typography variant="body2" sx={{ opacity: 0.9 }}>Total</Typography>
-                </CardContent>
-              </Card>
+              <Paper 
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                  background: alpha(theme.palette.primary.main, 0.08),
+                  transition: 'all 0.3s ease',
+                  '&:hover': { 
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.2)}`,
+                  }
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      bgcolor: theme.palette.primary.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                    }}
+                  >
+                    <EventNoteIcon sx={{ fontSize: 28 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="h4" fontWeight={700} color="primary">
+                      {appointments.length}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                      Total
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
             </Grid>
           </Grid>
 
           {/* Filter Tabs */}
-          <Card sx={{ mb: 3 }}>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              mb: 3,
+              borderRadius: 3,
+              border: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
+              overflow: 'hidden'
+            }}
+          >
             <Tabs
               value={filter}
               onChange={(_, newValue) => setFilter(newValue)}
               variant="scrollable"
               scrollButtons="auto"
+              sx={{
+                '& .MuiTab-root': {
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  textTransform: 'none',
+                  minHeight: 56,
+                },
+                '& .Mui-selected': {
+                  color: theme.palette.primary.main,
+                }
+              }}
             >
               <Tab label={`Todas (${appointments.length})`} value="all" />
               <Tab label={`Pendientes (${pendingCount})`} value="pending" />
               <Tab label={`Aceptadas (${acceptedCount})`} value="accepted" />
               <Tab label={`Rechazadas (${rejectedCount})`} value="rejected" />
             </Tabs>
-          </Card>
+          </Paper>
 
           {/* Appointments List */}
           {filteredAppointments.length === 0 ? (
-            <Card sx={{ textAlign: 'center', py: 6 }}>
-              <CardContent>
-                <EventNoteIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-                <Typography variant="h6" color="text.secondary">
-                  No hay citas {filter !== 'all' ? getStatusLabel(filter).toLowerCase() : 'registradas'}
-                </Typography>
-              </CardContent>
-            </Card>
+            <Paper 
+              elevation={0}
+              sx={{ 
+                textAlign: 'center', 
+                py: 8,
+                borderRadius: 3,
+                border: `2px dashed ${alpha(theme.palette.divider, 0.3)}`,
+                background: alpha(theme.palette.background.default, 0.5),
+              }}
+            >
+              <EventNoteIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2, opacity: 0.3 }} />
+              <Typography variant="h6" color="text.secondary" fontWeight={600}>
+                No hay citas {filter !== 'all' ? getStatusLabel(filter).toLowerCase() : 'registradas'}
+              </Typography>
+              <Typography variant="body2" color="text.disabled" sx={{ mt: 1 }}>
+                Las citas aparecerán aquí cuando los pacientes las soliciten
+              </Typography>
+            </Paper>
           ) : (
             <Grid container spacing={3}>
               {filteredAppointments.map((apt) => (
@@ -304,13 +474,44 @@ const AppointmentManager = () => {
         onClose={handleCloseEditDialog}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: `0 8px 32px ${alpha(theme.palette.common.black, 0.12)}`,
+          }
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight="600">
-              Reagendar Cita
-            </Typography>
-            <IconButton onClick={handleCloseEditDialog} size="small">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 2,
+                  bgcolor: alpha(theme.palette.primary.main, 0.1),
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.palette.primary.main,
+                }}
+              >
+                <EventNoteIcon />
+              </Box>
+              <Typography variant="h6" fontWeight={700}>
+                Reagendar Cita
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={handleCloseEditDialog} 
+              size="small"
+              sx={{
+                bgcolor: alpha(theme.palette.error.main, 0.08),
+                '&:hover': {
+                  bgcolor: alpha(theme.palette.error.main, 0.15),
+                }
+              }}
+            >
               <CloseIcon />
             </IconButton>
           </Stack>

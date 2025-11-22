@@ -53,7 +53,8 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               label="Menarca (edad)"
               value={data.menarche || ''}
               onChange={(e) => onChange('menarche', e.target.value ? parseInt(e.target.value) : undefined)}
-              InputProps={{ inputProps: { min: 8, max: 20 }, readOnly }}
+              InputProps={{ inputProps: { min: 8, max: 20 } }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
@@ -64,17 +65,18 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               onChange={(e) => onChange('menstrualCycle', e.target.value)}
               placeholder="Ej: 28/4"
               helperText="días de ciclo / días de sangrado"
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
+              type="date"
               label="Fecha Última Menstruación (FUM)"
               value={data.lastMenstrualPeriod}
               onChange={(e) => onChange('lastMenstrualPeriod', e.target.value)}
-              placeholder="DD/MM/AAAA"
-              InputProps={{ readOnly }}
+              InputLabelProps={{ shrink: true }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -91,7 +93,8 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               label="Gestas (G)"
               value={data.pregnancies}
               onChange={(e) => onChange('pregnancies', parseInt(e.target.value) || 0)}
-              InputProps={{ inputProps: { min: 0 }, readOnly }}
+              InputProps={{ inputProps: { min: 0 } }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 6, md: 3 }}>
@@ -101,7 +104,8 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               label="Partos (P)"
               value={data.births}
               onChange={(e) => onChange('births', parseInt(e.target.value) || 0)}
-              InputProps={{ inputProps: { min: 0 }, readOnly }}
+              InputProps={{ inputProps: { min: 0 } }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 6, md: 3 }}>
@@ -111,7 +115,8 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               label="Cesáreas (C)"
               value={data.cesareans}
               onChange={(e) => onChange('cesareans', parseInt(e.target.value) || 0)}
-              InputProps={{ inputProps: { min: 0 }, readOnly }}
+              InputProps={{ inputProps: { min: 0 } }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 6, md: 3 }}>
@@ -121,7 +126,8 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               label="Abortos (A)"
               value={data.abortions}
               onChange={(e) => onChange('abortions', parseInt(e.target.value) || 0)}
-              InputProps={{ inputProps: { min: 0 }, readOnly }}
+              InputProps={{ inputProps: { min: 0 } }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -132,27 +138,29 @@ export const GynecologicalHistorySection = memo(({ data, onChange, readOnly = fa
               value={data.contraception}
               onChange={(e) => onChange('contraception', e.target.value)}
               placeholder="Ej: DIU, Píldoras, Condón"
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
+              type="date"
               label="Último Papanicolaou"
               value={data.lastPapSmear}
               onChange={(e) => onChange('lastPapSmear', e.target.value)}
-              placeholder="DD/MM/AAAA"
-              InputProps={{ readOnly }}
+              InputLabelProps={{ shrink: true }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
+              type="date"
               label="Última Mastografía"
               value={data.lastMammogram}
               onChange={(e) => onChange('lastMammogram', e.target.value)}
-              placeholder="DD/MM/AAAA"
-              InputProps={{ readOnly }}
+              InputLabelProps={{ shrink: true }}
+              disabled={readOnly}
             />
           </Grid>
         </Grid>

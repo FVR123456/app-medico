@@ -64,7 +64,7 @@ export const SystemsReviewSection = memo(({ data, onChange, readOnly = false }: 
                 value={data[field as keyof typeof data]}
                 onChange={(e) => onChange(field, e.target.value)}
                 placeholder={placeholder}
-                InputProps={{ readOnly }}
+                disabled={readOnly}
               />
             </Grid>
           ))}

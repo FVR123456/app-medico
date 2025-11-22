@@ -191,7 +191,7 @@ export const PathologicalHistorySection = memo(({
                       label="Cirugía"
                       value={surgery.surgery}
                       onChange={(e) => onUpdateArrayItem('previousSurgeries', index, 'surgery', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 3 }}>
@@ -201,7 +201,7 @@ export const PathologicalHistorySection = memo(({
                       label="Fecha"
                       value={surgery.date}
                       onChange={(e) => onUpdateArrayItem('previousSurgeries', index, 'date', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 3 }}>
@@ -211,7 +211,7 @@ export const PathologicalHistorySection = memo(({
                       label="Complicaciones"
                       value={surgery.complications}
                       onChange={(e) => onUpdateArrayItem('previousSurgeries', index, 'complications', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   {!readOnly && (
@@ -235,7 +235,7 @@ export const PathologicalHistorySection = memo(({
               label="Traumatismos"
               value={data.traumas}
               onChange={(e) => onUpdateField('traumas', e.target.value)}
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
           <Grid size={{ xs: 12, md: 6 }}>
@@ -246,7 +246,7 @@ export const PathologicalHistorySection = memo(({
               label="Transfusiones"
               value={data.transfusions}
               onChange={(e) => onUpdateField('transfusions', e.target.value)}
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -273,7 +273,7 @@ export const PathologicalHistorySection = memo(({
                       label="Motivo"
                       value={hosp.reason}
                       onChange={(e) => onUpdateArrayItem('hospitalizations', index, 'reason', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 3 }}>
@@ -283,7 +283,7 @@ export const PathologicalHistorySection = memo(({
                       label="Fecha"
                       value={hosp.date}
                       onChange={(e) => onUpdateArrayItem('hospitalizations', index, 'date', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 3 }}>
@@ -293,7 +293,7 @@ export const PathologicalHistorySection = memo(({
                       label="Duración"
                       value={hosp.duration}
                       onChange={(e) => onUpdateArrayItem('hospitalizations', index, 'duration', e.target.value)}
-                      InputProps={{ readOnly }}
+                      disabled={readOnly}
                     />
                   </Grid>
                   {!readOnly && (
@@ -344,7 +344,6 @@ export const PathologicalHistorySection = memo(({
               value={data.addictions?.smokingDetails || ''}
               onChange={(e) => onUpdateNestedField('addictions', 'smokingDetails', e.target.value)}
               placeholder="Ej: 10 cigarrillos/día por 5 años"
-              InputProps={{ readOnly }}
             />
           </Grid>
 
@@ -374,7 +373,6 @@ export const PathologicalHistorySection = memo(({
               value={data.addictions?.alcoholDetails || ''}
               onChange={(e) => onUpdateNestedField('addictions', 'alcoholDetails', e.target.value)}
               placeholder="Ej: Ocasional, frecuencia y cantidad"
-              InputProps={{ readOnly }}
             />
           </Grid>
 
@@ -404,7 +402,6 @@ export const PathologicalHistorySection = memo(({
               value={data.addictions?.drugsDetails || ''}
               onChange={(e) => onUpdateNestedField('addictions', 'drugsDetails', e.target.value)}
               placeholder="Ej: Tipo de sustancia, frecuencia"
-              InputProps={{ readOnly }}
             />
           </Grid>
         </Grid>

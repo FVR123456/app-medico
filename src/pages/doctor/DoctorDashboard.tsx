@@ -1,7 +1,24 @@
 import { useEffect, useState } from 'react';
 import Layout from '@/components/Layout';
 import CreatePatientDialog from '@/components/doctor/CreatePatientDialog';
-import { Typography, Grid, Card, CardContent, CardActionArea, Avatar, Box, CircularProgress, TextField, InputAdornment, Fade, Stack, Button } from '@mui/material';
+import { 
+  Typography, 
+  Grid, 
+  Card, 
+  CardContent, 
+  CardActionArea, 
+  Avatar, 
+  Box, 
+  CircularProgress, 
+  TextField, 
+  InputAdornment, 
+  Fade, 
+  Stack, 
+  Button,
+  alpha,
+  useTheme,
+  Paper,
+} from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { getAllPatients, subscribeToAppointments } from '@/services/firestore';
 import PersonIcon from '@mui/icons-material/Person';
@@ -17,6 +34,7 @@ import type { Appointment } from '@/services/firestore';
 import { logger } from '@/services/logger';
 
 const DoctorDashboard = () => {
+  const theme = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess } = useNotification();
@@ -83,118 +101,263 @@ const DoctorDashboard = () => {
     <Layout title="Panel Médico">
       <Fade in timeout={500}>
         <Box>
+          {/* Header de bienvenida con glassmorphism */}
+          <Paper
+            elevation={0}
+            sx={{
+              mb: 4,
+              p: 3,
+              borderRadius: 3,
+              background: alpha(theme.palette.primary.main, 0.08),
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+              backdropFilter: 'blur(10px)',
+            }}
+          >
+            <Stack direction="row" alignItems="center" spacing={2}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 2,
+                  background: theme.palette.primary.main,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                }}
+              >
+                <PeopleOutlineIcon sx={{ color: '#fff', fontSize: 32 }} />
+              </Box>
+              <Box>
+                <Typography variant="h5" fontWeight="700" gutterBottom>
+                  Panel Médico
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Gestiona tus pacientes y citas médicas
+                </Typography>
+              </Box>
+            </Stack>
+          </Paper>
+
           {/* Stats Section */}
-          <Grid container spacing={3} sx={{ mb: 4 }}>
-            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                color: 'white',
-                height: '100%'
-              }}>
-                <CardContent>
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Stack spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: '100%',
+                    borderRadius: 3,
+                    background: alpha('#fff', 0.8),
+                    border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 24px ${alpha(theme.palette.primary.main, 0.15)}`,
+                      borderColor: alpha(theme.palette.primary.main, 0.3),
+                    },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
                         Total Pacientes
                       </Typography>
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography variant="h3" fontWeight="700" color="primary.main">
                         {patients.length}
                       </Typography>
                     </Box>
-                    <PeopleOutlineIcon sx={{ fontSize: 60, opacity: 0.3 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 2,
+                        background: alpha(theme.palette.primary.main, 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <PeopleOutlineIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                color: 'white',
-                height: '100%'
-              }}>
-                <CardContent>
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: '100%',
+                    borderRadius: 3,
+                    background: alpha('#fff', 0.8),
+                    border: `2px solid ${alpha('#f59e0b', 0.1)}`,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 24px ${alpha('#f59e0b', 0.15)}`,
+                      borderColor: alpha('#f59e0b', 0.3),
+                    },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                        ⏳ Pendientes
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                        Pendientes
                       </Typography>
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography variant="h3" fontWeight="700" sx={{ color: '#f59e0b' }}>
                         {pendingAppointments}
                       </Typography>
                     </Box>
-                    <WarningIcon sx={{ fontSize: 60, opacity: 0.3 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 2,
+                        background: alpha('#f59e0b', 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <WarningIcon sx={{ fontSize: 32, color: '#f59e0b' }} />
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                color: 'white',
-                height: '100%'
-              }}>
-                <CardContent>
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: '100%',
+                    borderRadius: 3,
+                    background: alpha('#fff', 0.8),
+                    border: `2px solid ${alpha('#10b981', 0.1)}`,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 24px ${alpha('#10b981', 0.15)}`,
+                      borderColor: alpha('#10b981', 0.3),
+                    },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                        📅 Hoy
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                        Citas Hoy
                       </Typography>
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography variant="h3" fontWeight="700" sx={{ color: '#10b981' }}>
                         {todayAppointments}
                       </Typography>
                     </Box>
-                    <EventIcon sx={{ fontSize: 60, opacity: 0.3 }} />
-                  </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 2,
+                        background: alpha('#10b981', 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <EventIcon sx={{ fontSize: 32, color: '#10b981' }} />
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
 
-            <Grid size={{ xs: 12, md: 6, lg: 3 }}>
-              <Card sx={{
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                color: 'white',
-                height: '100%'
-              }}>
-                <CardContent>
-                  <Box display="flex" alignItems="center" justifyContent="space-between">
+              <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    height: '100%',
+                    borderRadius: 3,
+                    background: alpha('#fff', 0.8),
+                    border: `2px solid ${alpha('#8b5cf6', 0.1)}`,
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: `0 8px 24px ${alpha('#8b5cf6', 0.15)}`,
+                      borderColor: alpha('#8b5cf6', 0.3),
+                    },
+                  }}
+                >
+                  <Stack direction="row" alignItems="center" justifyContent="space-between">
                     <Box>
-                      <Typography variant="body2" sx={{ opacity: 0.9, mb: 1 }}>
-                        📊 Total
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+                        Total Citas
                       </Typography>
-                      <Typography variant="h3" fontWeight="bold">
+                      <Typography variant="h3" fontWeight="700" sx={{ color: '#8b5cf6' }}>
                         {appointments.length}
                       </Typography>
                     </Box>
-                    <TrendingUpIcon sx={{ fontSize: 60, opacity: 0.3 }} />
-                  </Box>
-                </CardContent>
-              </Card>
+                    <Box
+                      sx={{
+                        width: 56,
+                        height: 56,
+                        borderRadius: 2,
+                        background: alpha('#8b5cf6', 0.1),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <TrendingUpIcon sx={{ fontSize: 32, color: '#8b5cf6' }} />
+                    </Box>
+                  </Stack>
+                </Paper>
+              </Grid>
             </Grid>
-          </Grid>
+          </Stack>
 
           {/* Alert for pending appointments */}
           {pendingAppointments > 0 && (
-            <Card sx={{ mb: 4, backgroundColor: '#fef3c7', borderLeft: '4px solid #f59e0b' }}>
-              <CardContent>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <WarningIcon sx={{ color: '#f59e0b' }} />
-                  <Box>
-                    <Typography variant="subtitle2" fontWeight="bold" color="#b45309">
-                      ⚠️ Tienes {pendingAppointments} cita(s) pendiente(s)
-                    </Typography>
-                    <Typography variant="caption" color="#92400e">
-                      Accede al Gestor de Citas para revisarlas
-                    </Typography>
-                  </Box>
-                </Stack>
-              </CardContent>
-            </Card>
+            <Paper
+              elevation={0}
+              sx={{ 
+                mb: 4, 
+                p: 3,
+                borderRadius: 3,
+                background: alpha('#f59e0b', 0.08),
+                border: `2px solid ${alpha('#f59e0b', 0.3)}`,
+                backdropFilter: 'blur(10px)',
+              }}
+            >
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 2,
+                    background: '#f59e0b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 4px 12px ${alpha('#f59e0b', 0.3)}`,
+                  }}
+                >
+                  <WarningIcon sx={{ color: '#fff', fontSize: 24 }} />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle1" fontWeight="700" sx={{ color: '#b45309' }}>
+                    Tienes {pendingAppointments} cita{pendingAppointments > 1 ? 's' : ''} pendiente{pendingAppointments > 1 ? 's' : ''}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#92400e' }}>
+                    Accede al Gestor de Citas para revisarlas y responder
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
           )}
 
           {/* Search Section */}
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 4 }}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
               <TextField
                 fullWidth
@@ -204,14 +367,22 @@ const DoctorDashboard = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon color="action" />
+                      <SearchIcon color="primary" />
                     </InputAdornment>
                   ),
                 }}
                 sx={{
-                  maxWidth: { md: 500 },
+                  maxWidth: { sm: 500 },
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'background.paper',
+                    borderRadius: 2,
+                    background: alpha('#fff', 0.8),
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.1)}`,
+                    },
+                    '&.Mui-focused': {
+                      boxShadow: `0 0 0 2px ${alpha(theme.palette.primary.main, 0.2)}`,
+                    },
                   }
                 }}
               />
@@ -219,7 +390,19 @@ const DoctorDashboard = () => {
                 variant="contained"
                 startIcon={<PersonAddIcon />}
                 onClick={() => setShowCreatePatientDialog(true)}
-                sx={{ whiteSpace: 'nowrap', minWidth: 180 }}
+                sx={{ 
+                  whiteSpace: 'nowrap', 
+                  minWidth: 180,
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                  transition: 'all 0.3s',
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 20px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  },
+                }}
               >
                 Nuevo Paciente
               </Button>
@@ -256,14 +439,22 @@ const DoctorDashboard = () => {
                   return (
                     <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={p.id}>
                       <Fade in timeout={300}>
-                        <Card sx={{
-                          height: '100%',
-                          transition: 'all 0.3s ease',
-                          '&:hover': {
-                            transform: 'translateY(-4px)',
-                            boxShadow: 4,
-                          }
-                        }}>
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            height: '100%',
+                            borderRadius: 3,
+                            background: alpha('#fff', 0.8),
+                            border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                            transition: 'all 0.3s',
+                            overflow: 'hidden',
+                            '&:hover': {
+                              transform: 'translateY(-8px)',
+                              boxShadow: `0 12px 32px ${alpha(theme.palette.primary.main, 0.2)}`,
+                              borderColor: alpha(theme.palette.primary.main, 0.3),
+                            },
+                          }}
+                        >
                           <CardActionArea
                             onClick={() => navigate(`/patient-details/${p.id}`)}
                             sx={{ height: '100%' }}
@@ -274,27 +465,53 @@ const DoctorDashboard = () => {
                               alignItems: 'center',
                               p: 3,
                               textAlign: 'center',
-                              gap: 2
+                              gap: 2,
                             }}>
-                              <Avatar sx={{
-                                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-                                width: 64,
-                                height: 64,
-                                fontSize: '1.5rem'
-                              }}>
-                                {p.name?.charAt(0).toUpperCase() || <PersonIcon />}
-                              </Avatar>
-                              <Box>
-                                <Typography variant="h6" fontWeight="600" sx={{ mb: 0.5 }}>
+                              <Box
+                                sx={{
+                                  width: 72,
+                                  height: 72,
+                                  borderRadius: 3,
+                                  background: theme.palette.primary.main,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  fontSize: '1.75rem',
+                                  fontWeight: 700,
+                                  color: '#fff',
+                                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                                }}
+                              >
+                                {p.name?.charAt(0).toUpperCase() || <PersonIcon fontSize="large" />}
+                              </Box>
+                              <Box sx={{ width: '100%' }}>
+                                <Typography 
+                                  variant="h6" 
+                                  fontWeight="700" 
+                                  sx={{ 
+                                    mb: 0.5,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
                                   {p.name}
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-word' }}>
+                                <Typography 
+                                  variant="body2" 
+                                  color="text.secondary"
+                                  sx={{ 
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
                                   {p.email}
                                 </Typography>
                               </Box>
                             </CardContent>
                           </CardActionArea>
-                        </Card>
+                        </Paper>
                       </Fade>
                     </Grid>
                   );

@@ -88,7 +88,7 @@ export const NonPathologicalHistorySection = memo(({
               value={data.housing?.pets || ''}
               onChange={(e) => onUpdateNestedField('housing', 'pets', e.target.value)}
               placeholder="Tipo y cantidad"
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -101,7 +101,7 @@ export const NonPathologicalHistorySection = memo(({
               value={data.diet}
               onChange={(e) => onUpdateField('diet', e.target.value)}
               placeholder="Describe los hábitos alimenticios del paciente..."
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -114,7 +114,7 @@ export const NonPathologicalHistorySection = memo(({
               value={data.physicalActivity}
               onChange={(e) => onUpdateField('physicalActivity', e.target.value)}
               placeholder="Tipo, frecuencia y duración de ejercicio..."
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -127,7 +127,7 @@ export const NonPathologicalHistorySection = memo(({
               value={data.hygiene}
               onChange={(e) => onUpdateField('hygiene', e.target.value)}
               placeholder="Hábitos de higiene personal..."
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
 
@@ -140,7 +140,7 @@ export const NonPathologicalHistorySection = memo(({
               value={data.immunizations}
               onChange={(e) => onUpdateField('immunizations', e.target.value)}
               placeholder="Vacunas aplicadas y esquema de vacunación..."
-              InputProps={{ readOnly }}
+              disabled={readOnly}
             />
           </Grid>
         </Grid>

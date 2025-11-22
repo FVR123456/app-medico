@@ -25,7 +25,8 @@ import {
   List,
   ListItem,
   ListItemText,
-  Badge
+  alpha,
+  useTheme,
 } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -49,10 +50,20 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PersonIcon from '@mui/icons-material/Person';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import ScienceIcon from '@mui/icons-material/Science';
+import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
+import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import EventIcon from '@mui/icons-material/Event';
+
 import { logger } from '@/services/logger';
 import { MedicalHistoryForm } from '@/components/medical-history';
+import VitalSignsChart from '@/components/VitalSignsChart';
+import CreateAppointmentDialog from '@/components/doctor/CreateAppointmentDialog';
 
 const PatientDetails = () => {
+  const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showSuccess, showError } = useNotification();
@@ -62,6 +73,8 @@ const PatientDetails = () => {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRecord, setSelectedRecord] = useState<MedicalRecord | null>(null);
+  const [showCharts, setShowCharts] = useState(false);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editData, setEditData] = useState<Partial<MedicalRecord> | null>(null);
@@ -204,10 +217,10 @@ const PatientDetails = () => {
       showSuccess('Historia clínica guardada exitosamente');
       logger.info('Medical history created', 'PatientDetails', { patientId: id });
       
-      // Recargar la historia clínica
+      // Recargar la historia clínica sin cerrar el diálogo
       const updatedHistory = await getMedicalHistory(id);
       setMedicalHistory(updatedHistory);
-      setShowHistoryForm(false);
+      // No cerrar el diálogo - el formulario manejará el estado de edición
     } catch (error) {
       logger.error('Error saving medical history', 'PatientDetails', error);
       showError('Error al guardar la historia clínica');
@@ -249,12 +262,21 @@ const PatientDetails = () => {
         <Box>
           {/* Header Mejorado */}
           <Box mb={4}>
-            <Stack direction="row" spacing={2} alignItems="center" mb={3}>
+            <Stack direction="row" spacing={2} alignItems="center" mb={3} flexWrap="wrap" useFlexGap>
               <Button
                 onClick={() => navigate('/doctor-dashboard')}
                 startIcon={<ArrowBackIcon />}
                 variant="outlined"
                 size="large"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                }}
               >
                 Volver
               </Button>
@@ -267,8 +289,36 @@ const PatientDetails = () => {
                 onClick={() => setShowHistoryForm(true)}
                 size="large"
                 color={medicalHistory ? "primary" : "warning"}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                }}
               >
                 {medicalHistory ? 'Ver Historia Clínica' : 'Crear Historia'}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<EventIcon />}
+                onClick={() => setShowAppointmentDialog(true)}
+                size="large"
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  borderWidth: 2,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                  '&:hover': {
+                    borderWidth: 2,
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+              >
+                Agendar Cita
               </Button>
               <Button
                 variant="contained"
@@ -283,64 +333,100 @@ const PatientDetails = () => {
                 }}
                 size="large"
                 disabled={!medicalHistory}
+                sx={{
+                  borderRadius: 2,
+                  fontWeight: 600,
+                  px: 3,
+                  boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                  },
+                }}
               >
                 Nueva Consulta
               </Button>
             </Stack>
 
             {/* Card de Paciente Compacta */}
-            <Card 
-              elevation={2}
+            <Paper
+              elevation={0}
               sx={{ 
                 borderRadius: 3,
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.08)} 0%, ${alpha(theme.palette.secondary.main, 0.08)} 100%)`,
+                border: `2px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                backdropFilter: 'blur(10px)',
               }}
             >
-              <CardContent sx={{ p: 3 }}>
-                <Stack direction="row" spacing={3} alignItems="center">
-                  <Avatar
+              <CardContent sx={{ p: 4 }}>
+                <Stack direction="row" spacing={3} alignItems="center" flexWrap="wrap" useFlexGap>
+                  <Box
                     sx={{
                       width: 80,
                       height: 80,
-                      bgcolor: 'white',
-                      color: '#667eea',
+                      borderRadius: 3,
+                      background: theme.palette.primary.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       fontSize: '2rem',
-                      fontWeight: 'bold',
-                      boxShadow: 3
+                      fontWeight: 700,
+                      color: '#fff',
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                     }}
                   >
                     {patientName.charAt(0).toUpperCase()}
-                  </Avatar>
+                  </Box>
                   
                   <Box flex={1}>
-                    <Typography variant="h4" fontWeight="700" color="white" gutterBottom>
+                    <Typography variant="h4" fontWeight="700" gutterBottom sx={{ color: 'text.primary' }}>
                       {patientName}
                     </Typography>
-                    <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                       <Chip 
                         label={`${records.length} consultas`}
                         size="small"
-                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                        sx={{ 
+                          bgcolor: alpha(theme.palette.primary.main, 0.1), 
+                          color: 'primary.main', 
+                          fontWeight: 600,
+                          borderRadius: 1.5,
+                        }}
                       />
                       {calculateAge(patientBirthDate) !== null && (
                         <Chip 
                           label={`${calculateAge(patientBirthDate)} años`}
                           size="small"
-                          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.info.main, 0.1), 
+                            color: 'info.main', 
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                          }}
                         />
                       )}
                       {patientGender && (
                         <Chip 
                           label={patientGender}
                           size="small"
-                          sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white', fontWeight: 600 }}
+                          sx={{ 
+                            bgcolor: alpha(theme.palette.secondary.main, 0.1), 
+                            color: 'secondary.main', 
+                            fontWeight: 600,
+                            borderRadius: 1.5,
+                          }}
                         />
                       )}
                       {patientBloodType && (
                         <Chip 
                           label={patientBloodType}
                           size="small"
-                          sx={{ bgcolor: 'rgba(255,255,255,0.3)', color: 'white', fontWeight: 700 }}
+                          sx={{ 
+                            bgcolor: alpha('#ef4444', 0.1), 
+                            color: '#ef4444', 
+                            fontWeight: 700,
+                            borderRadius: 1.5,
+                          }}
                         />
                       )}
                     </Stack>
@@ -352,59 +438,120 @@ const PatientDetails = () => {
                     onClick={() => setPatientInfoOpen(true)}
                     size="large"
                     sx={{
-                      bgcolor: 'white',
-                      color: '#667eea',
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      px: 3,
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                       '&:hover': {
-                        bgcolor: 'rgba(255,255,255,0.9)'
-                      }
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      },
                     }}
                   >
                     Ver Información
                   </Button>
                 </Stack>
               </CardContent>
-            </Card>
+            </Paper>
 
             {/* Alerta si no tiene historia clínica */}
             {!medicalHistory && (
-              <Alert severity="warning" sx={{ mt: 2, borderRadius: 2 }}>
-                <Typography variant="body2" fontWeight="600">
-                  Este paciente aún no tiene Historia Clínica completa
-                </Typography>
-                <Typography variant="body2">
-                  Complete la Historia Clínica antes de registrar consultas médicas.
-                </Typography>
-              </Alert>
+              <Paper
+                elevation={0}
+                sx={{ 
+                  mt: 3,
+                  p: 3,
+                  borderRadius: 2,
+                  background: alpha('#f59e0b', 0.08),
+                  border: `2px solid ${alpha('#f59e0b', 0.3)}`,
+                }}
+              >
+                <Stack direction="row" spacing={2} alignItems="center">
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      background: '#f59e0b',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <InfoOutlinedIcon sx={{ color: '#fff', fontSize: 20 }} />
+                  </Box>
+                  <Box flex={1}>
+                    <Typography variant="body1" fontWeight="700" sx={{ color: '#92400e' }}>
+                      Este paciente aún no tiene Historia Clínica completa
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#92400e', mt: 0.5 }}>
+                      Complete la Historia Clínica antes de registrar consultas médicas.
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
             )}
           </Box>
 
           {/* Alertas Médicas Colapsables */}
           {(patientAllergies.length > 0 || patientConditions.length > 0 || allAllergies.length > 0) && (
-            <Card sx={{ mb: 3, borderRadius: 2, border: '2px solid #fbbf24' }}>
-              <CardContent>
+            <Paper 
+              elevation={0}
+              sx={{ 
+                mb: 3, 
+                borderRadius: 3, 
+                border: `2px solid ${alpha('#f59e0b', 0.3)}`,
+                background: alpha('#f59e0b', 0.04),
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
                 <Box 
                   onClick={() => setMedicalAlertsExpanded(!medicalAlertsExpanded)}
                   sx={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
                 >
-                  <Typography variant="h6" fontWeight="600" color="warning.main">
-                    Alertas Médicas Importantes
-                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                    <Box
+                      sx={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 1.5,
+                        background: '#f59e0b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <InfoOutlinedIcon sx={{ color: '#fff', fontSize: 20 }} />
+                    </Box>
+                    <Typography variant="h6" fontWeight="700" sx={{ color: '#92400e' }}>
+                      Alertas Médicas Importantes
+                    </Typography>
+                  </Stack>
                   <IconButton size="small">
                     {medicalAlertsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                   </IconButton>
                 </Box>
                 
                 <Collapse in={medicalAlertsExpanded}>
-                  <Stack spacing={2} sx={{ mt: 2 }}>
+                  <Stack spacing={3} sx={{ mt: 3 }}>
                     {/* Alergias del perfil */}
                     {patientAllergies.length > 0 && (
                       <Box>
-                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        <Typography variant="subtitle2" fontWeight="700" gutterBottom sx={{ color: '#92400e' }}>
                           Alergias Conocidas
                         </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
                           {patientAllergies.map((allergy, index) => (
-                            <Chip key={index} label={allergy} color="warning" size="medium" />
+                            <Chip 
+                              key={index} 
+                              label={allergy} 
+                              sx={{
+                                bgcolor: '#f59e0b',
+                                color: '#fff',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                              }}
+                            />
                           ))}
                         </Stack>
                       </Box>
@@ -413,12 +560,23 @@ const PatientDetails = () => {
                     {/* Alergias de consultas */}
                     {allAllergies.length > 0 && (
                       <Box>
-                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        <Typography variant="subtitle2" fontWeight="700" gutterBottom sx={{ color: '#92400e' }}>
                           Alergias Registradas en Consultas
                         </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
                           {allAllergies.map((allergy, index) => (
-                            <Chip key={index} label={allergy} color="warning" variant="outlined" size="medium" />
+                            <Chip 
+                              key={index} 
+                              label={allergy} 
+                              variant="outlined"
+                              sx={{
+                                borderColor: '#f59e0b',
+                                color: '#92400e',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                                borderWidth: 2,
+                              }}
+                            />
                           ))}
                         </Stack>
                       </Box>
@@ -427,12 +585,21 @@ const PatientDetails = () => {
                     {/* Condiciones crónicas */}
                     {patientConditions.length > 0 && (
                       <Box>
-                        <Typography variant="subtitle2" fontWeight="600" gutterBottom>
+                        <Typography variant="subtitle2" fontWeight="700" gutterBottom sx={{ color: '#92400e' }}>
                           Condiciones Crónicas
                         </Typography>
-                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ mt: 1.5 }}>
                           {patientConditions.map((condition, index) => (
-                            <Chip key={index} label={condition} color="error" size="medium" />
+                            <Chip 
+                              key={index} 
+                              label={condition} 
+                              sx={{
+                                bgcolor: '#ef4444',
+                                color: '#fff',
+                                fontWeight: 600,
+                                borderRadius: 1.5,
+                              }}
+                            />
                           ))}
                         </Stack>
                       </Box>
@@ -440,23 +607,79 @@ const PatientDetails = () => {
                   </Stack>
                 </Collapse>
               </CardContent>
-            </Card>
+            </Paper>
           )}
 
           {/* Historial Médico */}
-          <Card sx={{ borderRadius: 2 }}>
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h5" fontWeight="600" gutterBottom>
-                Historial de Consultas
-              </Typography>
+          <Paper 
+            elevation={0}
+            sx={{ 
+              borderRadius: 3,
+              border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+              background: alpha('#fff', 0.8),
+            }}
+          >
+            <CardContent sx={{ p: 4 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3} flexWrap="wrap" useFlexGap>
+                <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <Box
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: 2,
+                      background: theme.palette.primary.main,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <AssignmentIcon sx={{ color: '#fff', fontSize: 22 }} />
+                  </Box>
+                  <Typography variant="h5" fontWeight="700">
+                    Historial de Consultas
+                  </Typography>
+                </Stack>
+                {records.length > 0 && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<TrendingUpIcon />}
+                    onClick={() => setShowCharts(true)}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      borderWidth: 2,
+                      '&:hover': {
+                        borderWidth: 2,
+                        transform: 'translateY(-2px)',
+                      },
+                    }}
+                  >
+                    Ver gráficas
+                  </Button>
+                )}
+              </Stack>
 
               {records.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 8 }}>
-                  <AssignmentIcon sx={{ fontSize: 80, color: 'text.disabled', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                  <Box
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      borderRadius: 3,
+                      background: alpha(theme.palette.primary.main, 0.1),
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto',
+                      mb: 3,
+                    }}
+                  >
+                    <AssignmentIcon sx={{ fontSize: 48, color: theme.palette.primary.main }} />
+                  </Box>
+                  <Typography variant="h6" color="text.secondary" gutterBottom fontWeight="600">
                     Sin consultas registradas
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
                     Registre la primera consulta para comenzar el historial médico
                   </Typography>
                   <Button
@@ -472,6 +695,15 @@ const PatientDetails = () => {
                     }}
                     size="large"
                     disabled={!medicalHistory}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      px: 4,
+                      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+                      '&:hover': {
+                        boxShadow: `0 6px 16px ${alpha(theme.palette.primary.main, 0.4)}`,
+                      },
+                    }}
                   >
                     Crear Primera Consulta
                   </Button>
@@ -480,47 +712,49 @@ const PatientDetails = () => {
                 <Stack spacing={2} sx={{ mt: 2 }}>
                   {records.map((record) => (
                     <Fade in timeout={300} key={record.id}>
-                      <Card 
+                      <Paper
                         elevation={0}
                         sx={{ 
                           cursor: 'pointer',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 2,
+                          borderRadius: 3,
+                          border: `2px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                          background: alpha('#fff', 0.5),
+                          transition: 'all 0.3s',
                           '&:hover': { 
-                            borderColor: 'primary.main',
-                            boxShadow: 2
+                            borderColor: alpha(theme.palette.primary.main, 0.3),
+                            boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.15)}`,
+                            transform: 'translateY(-2px)',
                           }, 
-                          transition: 'all 0.2s'
                         }}
                         onClick={() => handleOpenModal(record)}
                       >
-                        <CardContent sx={{ p: 2.5 }}>
-                          <Stack direction="row" spacing={2} alignItems="flex-start">
+                        <CardContent sx={{ p: 3 }}>
+                          <Stack direction="row" spacing={3} alignItems="flex-start">
                             <Box
                               sx={{
-                                minWidth: 60,
-                                height: 60,
+                                minWidth: 64,
+                                height: 64,
                                 borderRadius: 2,
-                                bgcolor: 'primary.main',
+                                background: theme.palette.primary.main,
                                 color: 'white',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontWeight: 'bold'
+                                fontWeight: 'bold',
+                                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
                               }}
                             >
-                              <Typography variant="h6">
+                              <Typography variant="h5" fontWeight="700">
                                 {new Date(record.date).getDate()}
                               </Typography>
-                              <Typography variant="caption">
+                              <Typography variant="caption" sx={{ textTransform: 'uppercase' }}>
                                 {new Date(record.date).toLocaleDateString('es-MX', { month: 'short' })}
                               </Typography>
                             </Box>
                             
                             <Box flex={1}>
-                              <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                              <Typography variant="h6" fontWeight="700" gutterBottom>
                                 {new Date(record.date).toLocaleDateString('es-MX', {
                                   weekday: 'long',
                                   year: 'numeric',
@@ -534,12 +768,13 @@ const PatientDetails = () => {
                               <Typography 
                                 variant="body2" 
                                 sx={{ 
-                                  mt: 1,
+                                  mt: 1.5,
                                   overflow: 'hidden', 
                                   textOverflow: 'ellipsis', 
                                   display: '-webkit-box', 
                                   WebkitLineClamp: 2, 
-                                  WebkitBoxOrient: 'vertical' 
+                                  WebkitBoxOrient: 'vertical',
+                                  color: 'text.secondary',
                                 }}
                               >
                                 {record.diagnosis}
@@ -551,26 +786,36 @@ const PatientDetails = () => {
                                 <Chip 
                                   label={`${record.vitalSigns.bloodPressure}`} 
                                   size="small" 
-                                  variant="outlined"
+                                  sx={{
+                                    bgcolor: alpha('#ef4444', 0.1),
+                                    color: '#ef4444',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                  }}
                                 />
                               )}
                               {record.vitalSigns?.heartRate && (
                                 <Chip 
                                   label={`${record.vitalSigns.heartRate} bpm`} 
                                   size="small" 
-                                  variant="outlined"
+                                  sx={{
+                                    bgcolor: alpha('#10b981', 0.1),
+                                    color: '#10b981',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                  }}
                                 />
                               )}
                             </Stack>
                           </Stack>
                         </CardContent>
-                      </Card>
+                      </Paper>
                     </Fade>
                   ))}
                 </Stack>
               )}
             </CardContent>
-          </Card>
+          </Paper>
 
           {/* Modal - Información del Paciente */}
           <Dialog
@@ -964,53 +1209,149 @@ const PatientDetails = () => {
                     </Box>
                   )}
 
+                  {/* Sección SOAP */}
+                  {(selectedRecord.subjective || selectedRecord.objective || selectedRecord.analysis || selectedRecord.plan || selectedRecord.prognosis) && (
+                    <Box sx={{ mt: 2, p: 2.5, bgcolor: '#f5f5f5', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="h6" fontWeight="700" color="primary" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                        <AssignmentIcon /> Nota Médica (SOAP)
+                      </Typography>
+                      
+                      {/* 1. Subjetivo */}
+                      {selectedRecord.subjective && (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#1976d2', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PersonIcon fontSize="small" /> Subjetivo
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                              {selectedRecord.subjective}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      )}
+
+                      {/* 2. Objetivo */}
+                      {selectedRecord.objective && (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#2e7d32', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <VisibilityIcon fontSize="small" /> Objetivo
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                              {selectedRecord.objective}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      )}
+
+                      {/* 3. Análisis */}
+                      {selectedRecord.analysis && (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#ed6c02', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ScienceIcon fontSize="small" /> Análisis
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                              {selectedRecord.analysis}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      )}
+
+                      {/* 4. Diagnóstico (en SOAP) */}
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#d32f2f', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <LocalHospitalIcon fontSize="small" /> Diagnóstico
+                        </Typography>
+                        <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                          <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                            {selectedRecord.diagnosis}
+                          </Typography>
+                        </Paper>
+                      </Box>
+
+                      {/* 5. Plan */}
+                      {selectedRecord.plan && (
+                        <Box sx={{ mb: 3 }}>
+                          <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#9c27b0', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <MedicalServicesIcon fontSize="small" /> Plan de Tratamiento
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                              {selectedRecord.plan}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      )}
+
+                      {/* 6. Pronóstico */}
+                      {selectedRecord.prognosis && (
+                        <Box>
+                          <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#0288d1', mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TrendingUpIcon fontSize="small" /> Pronóstico
+                          </Typography>
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'white' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line', color: 'text.secondary' }}>
+                              {selectedRecord.prognosis}
+                            </Typography>
+                          </Paper>
+                        </Box>
+                      )}
+                    </Box>
+                  )}
+
                   <Divider />
 
-                  {/* Diagnosis */}
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-                      Diagnóstico
-                    </Typography>
-                    {!editMode ? (
-                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                          {selectedRecord.diagnosis}
+                  {/* Secciones Legacy (solo si NO hay datos SOAP) */}
+                  {!(selectedRecord.subjective || selectedRecord.objective || selectedRecord.analysis || selectedRecord.plan || selectedRecord.prognosis) && (
+                    <>
+                      {/* Diagnosis */}
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                          Diagnóstico
                         </Typography>
-                      </Paper>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={3}
-                        value={editData?.diagnosis || ''}
-                        onChange={(e) => setEditData({ ...editData, diagnosis: e.target.value })}
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
+                        {!editMode ? (
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                              {selectedRecord.diagnosis}
+                            </Typography>
+                          </Paper>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={3}
+                            value={editData?.diagnosis || ''}
+                            onChange={(e) => setEditData({ ...editData, diagnosis: e.target.value })}
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
 
-                  {/* Prescription */}
-                  <Box>
-                    <Typography variant="subtitle1" fontWeight="600" gutterBottom>
-                      Indicaciones y Tratamiento
-                    </Typography>
-                    {!editMode ? (
-                      <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
-                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                          {selectedRecord.prescription}
+                      {/* Prescription */}
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight="600" gutterBottom>
+                          Indicaciones y Tratamiento
                         </Typography>
-                      </Paper>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        multiline
-                        rows={4}
-                        value={editData?.prescription || ''}
-                        onChange={(e) => setEditData({ ...editData, prescription: e.target.value })}
-                        variant="outlined"
-                      />
-                    )}
-                  </Box>
+                        {!editMode ? (
+                          <Paper variant="outlined" sx={{ p: 2, bgcolor: 'background.default' }}>
+                            <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                              {selectedRecord.prescription}
+                            </Typography>
+                          </Paper>
+                        ) : (
+                          <TextField
+                            fullWidth
+                            multiline
+                            rows={4}
+                            value={editData?.prescription || ''}
+                            onChange={(e) => setEditData({ ...editData, prescription: e.target.value })}
+                            variant="outlined"
+                          />
+                        )}
+                      </Box>
+                    </>
+                  )}
 
                   {/* Notes */}
                   {(selectedRecord.notes || editMode) && (
@@ -1117,6 +1458,52 @@ const PatientDetails = () => {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Modal de Gráficas de Signos Vitales */}
+          <Dialog
+            open={showCharts}
+            onClose={() => setShowCharts(false)}
+            maxWidth="lg"
+            fullWidth
+          >
+            <DialogTitle>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <TrendingUpIcon color="primary" sx={{ fontSize: 28 }} />
+                  <Box>
+                    <Typography variant="h6" fontWeight="600">
+                      Evolución de Signos Vitales
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {patientName}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <IconButton onClick={() => setShowCharts(false)}>
+                  <CloseIcon />
+                </IconButton>
+              </Stack>
+            </DialogTitle>
+            <DialogContent dividers>
+              <VitalSignsChart records={records} />
+            </DialogContent>
+            <DialogActions sx={{ p: 2 }}>
+              <Button onClick={() => setShowCharts(false)}>
+                Cerrar
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Diálogo para Agendar Cita */}
+          <CreateAppointmentDialog
+            open={showAppointmentDialog}
+            onClose={() => setShowAppointmentDialog(false)}
+            patientId={id || ''}
+            patientName={patientName}
+            onSuccess={() => {
+              showSuccess('Cita agendada exitosamente');
+            }}
+          />
         </Box>
       </Fade>
     </Layout>

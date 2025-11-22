@@ -129,6 +129,36 @@ export const createAppointment = async (
      }, { maxRetries: 3, delay: 1000 });
 };
 
+// Crear cita por el médico (sin validaciones de horario)
+export const createAppointmentByDoctor = async (
+     patientId: string, 
+     patientName: string, 
+     date: string, 
+     time: string,
+     reason: string
+) => {
+     if (!date || !time || !reason.trim()) {
+          throw new Error('Todos los campos son requeridos');
+     }
+
+     const isWeekendAppointment = isWeekend(date);
+
+     return retryWithBackoff(async () => {
+          await addDoc(collection(db, "appointments"), {
+               patientId,
+               patientName,
+               date,
+               time,
+               reason: reason.trim(),
+               status: 'accepted', // Pre-aprobada por el médico
+               requiresApproval: false,
+               isWeekend: isWeekendAppointment,
+               createdAt: new Date().toISOString(),
+               createdByDoctor: true
+          });
+     }, { maxRetries: 3, delay: 1000 });
+};
+
 export const updateAppointment = async (
      appointmentId: string,
      date: string,
@@ -293,16 +323,29 @@ export const addMedicalRecord = async (
      vitalSigns?: VitalSigns,
      allergies?: string[],
      currentMedications?: string[],
-     notes?: string
+     notes?: string,
+     subjective?: string,
+     objective?: string,
+     analysis?: string,
+     prognosis?: string
 ) => {
      return retryWithBackoff(async () => {
           const recordData: any = {
                patientId,
                doctorName,
                diagnosis: diagnosis.trim(),
-               prescription: prescription.trim(),
+               plan: prescription.trim(), // El 'plan' es el nuevo nombre para prescription
                date: new Date().toISOString(),
           };
+
+          // Campos SOAP
+          if (subjective) recordData.subjective = subjective.trim();
+          if (objective) recordData.objective = objective.trim();
+          if (analysis) recordData.analysis = analysis.trim();
+          if (prognosis) recordData.prognosis = prognosis.trim();
+
+          // Mantener prescription para compatibilidad con registros antiguos
+          recordData.prescription = prescription.trim();
 
           if (vitalSigns) recordData.vitalSigns = vitalSigns;
           if (allergies && allergies.length > 0) recordData.allergies = allergies;

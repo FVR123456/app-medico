@@ -22,13 +22,24 @@ export interface MedicalRecord {
      patientId: string;
      doctorName: string;
      date: string;
-     diagnosis: string;
-     prescription: string;
+     
+     // Formato SOAP + Pronóstico
+     subjective?: string;      // 1. Subjetivo: Lo que el paciente reporta
+     objective?: string;        // 2. Objetivo: Lo que el médico observa/mide
+     analysis?: string;         // 3. Análisis: Interpretación de los datos
+     diagnosis: string;         // 4. Diagnóstico: Conclusión médica
+     plan: string;              // 5. Plan: Tratamiento y seguimiento
+     prognosis?: string;        // 6. Pronóstico: Evolución esperada (solo médico)
+     
+     // Campos adicionales
      vitalSigns?: VitalSigns;
      allergies?: string[];
      currentMedications?: string[];
      attachments?: Attachment[];
      notes?: string;
+     
+     // Campos legacy (mantener compatibilidad)
+     prescription?: string;     // Deprecado: usar 'plan'
 }
 
 export interface Appointment {
@@ -44,6 +55,7 @@ export interface Appointment {
      doctorNotes?: string;
      requiresApproval?: boolean; // true para citas de fin de semana
      isWeekend?: boolean; // indica si es fin de semana
+     createdByDoctor?: boolean; // true si el médico creó la cita directamente
 }
 
 export interface FamilyMember {
